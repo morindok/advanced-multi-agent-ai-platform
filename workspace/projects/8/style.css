@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Warlords of the Three Kingdoms</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Naskh+Arabic:wght@400;700&display=swap');
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0a;font-family:'Noto Naskh Arabic','Cinzel',serif;}
+#gameCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;}
+
+/* ── OVERLAY SYSTEM ── */
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease;}
+.overlay.hidden{opacity:0;pointer-events:none;}
+
+/* ── TITLE SCREEN ── */
+#titleScreen{background:linear-gradient(180deg,#0d0000 0%,#1a0505 30%,#2d0a0a 60%,#0d0000 100%);}
+#titleScreen::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 50% 30%,rgba(180,40,40,.15) 0%,transparent 70%);pointer-events:none;}
+.title-sword{font-size:80px;margin-bottom:10px;filter:drop-shadow(0 0 30px rgba(255,80,80,.8));animation:floatSword 3s ease-in-out infinite;}
+@keyframes floatSword{0%,100%{transform:translateY(0) rotate(-5deg);}50%{transform:translateY(-15px) rotate(5deg);}}
+.game-title{font-family:'Cinzel',serif;font-size:clamp(28px,6vw,72px);font-weight:900;color:#d4a017;text-shadow:0 0 40px rgba(212,160,23,.6),0 4px 8px rgba(0,0,0,.9);letter-spacing:4px;text-align:center;line-height:1.2;}
+.game-subtitle{font-size:clamp(12px,2vw,20px);color:#aa8030;margin-top:8px;letter-spacing:8px;text-transform:uppercase;text-align:center;}
+.title-ornament{width:60%;max-width:500px;height:2px;background:linear-gradient(90deg,transparent,#d4a017,transparent);margin:20px auto;}
+.start-btn{margin-top:40px;padding:16px 60px;font-size:22px;font-family:'Cinzel',serif;font-weight:700;color:#1a0505;background:linear-gradient(135deg,#d4a017,#f0c040,#d4a017);border:none;border-radius:4px;cursor:pointer;letter-spacing:3px;transition:all .3s;box-shadow:0 0 30px rgba(212,160,23,.4);text-transform:uppercase;}
+.start-btn:hover{transform:scale(1.08);box-shadow:0 0 50px rgba(212,160,23,.7);}
+.start-btn:active{transform:scale(.96);}
+.faction-select{display:flex;gap:20px;margin-top:30px;flex-wrap:wrap;justify-content:center;}
+.faction-btn{padding:12px 28px;font-size:16px;font-family:'Cinzel',serif;font-weight:700;border:2px solid;border-radius:4px;cursor:pointer;transition:all .3s;background:transparent;}
+.faction-btn.wei{color:#4488ff;border-color:#4488ff;}
+.faction-btn.wei:hover,.faction-btn.wei.active{background:#4488ff;color:#fff;box-shadow:0 0 20px rgba(68,136,255,.5);}
+.faction-btn.shu{color:#ff4444;border-color:#ff4444;}
+.faction-btn.shu:hover,.faction-btn.shu.active{background:#ff4444;color:#fff;box-shadow:0 0 20px rgba(255,68,68,.5);}
+.faction-btn.wu{color:#44ff88;border-color:#44ff88;}
+.faction-btn.wu:hover,.faction-btn.wu.active{background:#44ff88;color:#1a1a1a;box-shadow:0 0 20px rgba(68,255,136,.5);}
+.credits{position:absolute;bottom:20px;color:#555;font-size:12px;text-align:center;}
+
+/* ── CHARACTER SELECT ── */
+#charSelect{background:linear-gradient(180deg,#0a0a12,#12121e,#0a0a12);}
+.char-grid{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:900px;padding:20px;}
+.char-card{width:140px;padding:16px 10px;border:2px solid #333;border-radius:8px;text-align:center;cursor:pointer;transition:all .3s;background:rgba(20,20,30,.9);}
+.char-card:hover{border-color:#d4a017;transform:translateY(-4px);box-shadow:0 8px 25px rgba(212,160,23,.3);}
+.char-card.selected{border-color:#d4a017;background:rgba(212,160,23,.15);box-shadow:0 0 20px rgba(212,160,23,.4);}
+.char-avatar{width:70px;height:70px;margin:0 auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;}
+.char-name{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#d4a017;margin-bottom:4px;}
+.char-faction{font-size:11px;color:#888;margin-bottom:6px;}
+.char-stats{font-size:10px;color:#aaa;line-height:1.6;}
+.char-stats span{display:block;}
+.back-btn{margin-top:25px;padding:10px 40px;font-size:16px;font-family:'Cinzel',serif;color:#d4a017;background:transparent;border:1px solid #d4a017;border-radius:4px;cursor:pointer;transition:all .3s;}
+.back-btn:hover{background:rgba(212,160,23,.15);}
+
+/* ── HUD ── */
+#hud{position:fixed;top:0;left:0;right:0;z-index:5;pointer-events:none;padding:12px 20px;display:none;}
+.hud-top{display:flex;justify-content:space-between;align-items:flex-start;}
+.player-hud{display:flex;flex-direction:column;gap:6px;min-width:220px;}
+.hud-bar-container{position:relative;height:22px;border-radius:3px;overflow:hidden;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.7);}
+.hud-bar{height:100%;transition:width .15s;border-radius:2px;}
+.hud-bar-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);z-index:2;}
+#healthBar{background:linear-gradient(90deg,#cc2222,#ff4444);}
+#healthBarFill{background:linear-gradient(90deg,#aa1111,#ff3333);width:100%;}
+#musouBarFill{background:linear-gradient(90deg,#cc8800,#ffcc00);width:0%;}
+#musouBar{background:linear-gradient(90deg,#664400,#aa7700);}
+.hud-right{text-align:right;}
+.combo-display{font-family:'Cinzel',serif;font-size:36px;font-weight:900;color:#ffcc00;text-shadow:0 0 20px rgba(255,200,0,.8),0 2px 4px rgba(0,0,0,.9);line-height:1;}
+.combo-label{font-size:12px;color:#aa8800;letter-spacing:3px;}
+.ko-display{font-family:'Cinzel',serif;font-size:18px;color:#ff6644;margin-top:4px;}
+.wave-display{font-family:'Cinzel',serif;font-size:14px;color:#88aacc;margin-top:4px;}
+.minimap{width:140px;height:140px;border:2px solid rgba(212,160,23,.5);border-radius:50%;overflow:hidden;background:rgba(0,0,0,.6);margin-top:10px;}
+#minimapCanvas{width:100%;height:100%;}
+.musou-ready{animation:musouGlow 1s ease-in-out infinite;}
+@keyframes musouGlow{0%,100%{box-shadow:0 0 5px rgba(255,200,0,.5);}50%{box-shadow:0 0 20px rgba(255,200,0,.9),0 0 40px rgba(255,150,0,.5);}}
+
+/* ── DAMAGE NUMBERS ── */
+.damage-number{position:fixed;z-index:6;pointer-events:none;font-family:'Cinzel',serif;font-weight:900;text-shadow:0 0 10px currentColor,0 2px 4px rgba(0,0,0,.9);animation:dmgFloat .9s ease-out forwards;}
+@keyframes dmgFloat{0%{opacity:1;transform:translateY(0) scale(1.2);}100%{opacity:0;transform:translateY(-60px) scale(.8);}}
+.dmg-normal{color:#ff4444;font-size:22px;}
+.dmg-charged{color:#ffaa00;font-size:30px;}
+.dmg-musou{color:#ffdd00;font-size:38px;}
+.dmg-ko{color:#ff00ff;font-size:26px;}
+
+/* ── GAME OVER / VICTORY ── */
+#gameOverScreen{background:rgba(10,0,0,.92);}
+#victoryScreen{background:rgba(0,10,5,.92);}
+.result-title{font-family:'Cinzel',serif;font-size:clamp(32px,8vw,72px);font-weight:900;text-shadow:0 0 40px currentColor;}
+.result-title.defeat{color:#cc2222;}
+.result-title.victory{color:#d4a017;}
+.result-stats{color:#aaa;font-size:16px;margin-top:20px;text-align:center;line-height:2;}
+.result-stats b{color:#d4a017;}
+.restart-btn{margin-top:30px;padding:14px 50px;font-size:18px;font-family:'Cinzel',serif;font-weight:700;color:#1a0505;background:linear-gradient(135deg,#d4a017,#f0c040);border:none;border-radius:4px;cursor:pointer;letter-spacing:2px;transition:all .3s;}
+.restart-btn:hover{transform:scale(1.05);box-shadow:0 0 30px rgba(212,160,23,.5);}
+
+/* ── WAVE ANNOUNCE ── */
+#waveAnnounce{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:8;pointer-events:none;text-align:center;opacity:0;transition:opacity .3s;}
+#waveAnnounce.show{opacity:1;}
+.wave-announce-text{font-family:'Cinzel',serif;font-size:clamp(36px,10vw,80px);font-weight:900;color:#d4a017;text-shadow:0 0 60px rgba(212,160,23,.8),0 4px 8px rgba(0,0,0,.9);}
+.wave-announce-sub{font-size:clamp(14px,3vw,24px);color:#aa8030;margin-top:10px;letter-spacing:4px;}
+
+/* ── MOBILE CONTROLS ── */
+#mobileControls{position:fixed;bottom:0;left:0;right:0;z-index:7;pointer-events:none;display:none;padding:10px;}
+.joystick-zone{position:absolute;bottom:20px;left:20px;width:130px;height:130px;pointer-events:auto;}
+.action-buttons{position:absolute;bottom:20px;right:20px;display:flex;flex-direction:column;gap:10px;pointer-events:auto;}
+.action-btn{width:60px;height:60px;border-radius:50%;border:2px solid;font-size:11px;font-weight:700;font-family:'Cinzel',serif;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+.action-btn:active{transform:scale(.9);}
+#btnAttack{background:rgba(255,60,60,.4);border-color:#ff4444;color:#fff;}
+#btnCharge{background:rgba(255,180,0,.4);border-color:#ffaa00;color:#fff;}
+#btnMusou{background:rgba(255,220,0,.4);border-color:#ffdd00;color:#fff;}
+#btnDash{background:rgba(68,136,255,.4);border-color:#4488ff;color:#fff;}
+#btnBlock{background:rgba(68,255,136,.4);border-color:#44ff88;color:#fff;}
+
+/* ── LOADING ── */
+#loadingScreen{position:fixed;top:0;left:0;right:0;bottom:0;z-index:20;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.loading-text{font-family:'Cinzel',serif;color:#d4a017;font-size:20px;margin-top:20px;}
+.loading-bar-outer{width:300px;height:4px;background:#222;border-radius:2px;margin-top:15px;overflow:hidden;}
+.loading-bar-inner{height:100%;background:linear-gradient(90deg,#d4a017,#f0c040);width:0%;transition:width .3s;border-radius:2px;}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="title-sword">⚔</div>
+  <div class="loading-text" id="loadingText">در حال بارگذاری...</div>
+  <div class="loading-bar-outer"><div class="loading-bar-inner" id="loadingBar"></div></div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<!-- TITLE SCREEN -->
+<div class="overlay hidden" id="titleScreen">
+  <div class="title-sword">⚔</div>
+  <div class="game-title">WARLORDS OF THE<br>THREE KINGDOMS</div>
+  <div class="game-subtitle">نبردهای سه امپراتوری</div>
+  <div class="title-ornament"></div>
+  <div style="color:#888;font-size:14px;margin-bottom:10px;">فacciون خود را انتخاب کنید</div>
+  <div class="faction-select">
+    <button class="faction-btn wei active" data-faction="wei" onclick="selectFaction('wei')">وِی (Wei)</button>
+    <button class="faction-btn shu" data-faction="shu" onclick="selectFaction('shu')">شو (Shu)</button>
+    <button class="faction-btn wu" data-faction="wu" onclick="selectFaction('wu')">وو (Wu)</button>
+  </div>
+  <button class="start-btn" onclick="goToCharSelect()">شروع نبرد</button>
+  <div class="credits">یک بازی اکشن Musou | تمام دارایی‌ها توسط کد تولید می‌شوند</div>
+</div>
+
+<!-- CHARACTER SELECT -->
+<div class="overlay hidden" id="charSelect">
+  <div class="game-title" style="font-size:clamp(20px,4vw,42px);">فرماندهان را انتخاب کنید</div>
+  <div class="title-ornament"></div>
+  <div class="char-grid" id="charGrid"></div>
+  <button class="back-btn" onclick="backToTitle()">بازگشت</button>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-top">
+    <div class="player-hud">
+      <div class="hud-bar-container">
+        <div class="hud-bar-label" id="healthLabel">سلامت 100/100</div>
+        <div class="hud-bar" id="healthBarFill" style="width:100%;"></div>
+      </div>
+      <div class="hud-bar-container" id="musouBar">
+        <div class="hud-bar-label" id="musouLabel">موsou 0/100</div>
+        <div class="hud-bar" id="musouBarFill" style="width:0%;"></div>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div class="combo-label">COMBO</div>
+      <div class="combo-display" id="comboDisplay">0</div>
+      <div class="ko-display" id="koDisplay">KO: 0</div>
+      <div class="wave-display" id="waveDisplay">موج 1</div>
+      <canvas class="minimap" id="minimapCanvas" width="140" height="140"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- WAVE ANNOUNCE -->
+<div id="waveAnnounce">
+  <div class="wave-announce-text" id="waveAnnounceText"></div>
+  <div class="wave-announce-sub" id="waveAnnounceSub"></div>
+</div>
+
+<!-- GAME OVER -->
+<div class="overlay hidden" id="gameOverScreen">
+  <div class="result-title defeat">شکست خورد</div>
+  <div class="result-stats" id="defeatStats"></div>
+  <button class="restart-btn" onclick="restartGame()">تلاش دوباره</button>
+</div>
+
+<!-- VICTORY -->
+<div class="overlay hidden" id="victoryScreen">
+  <div class="result-title victory">پیروزی!</div>
+  <div class="result-stats" id="victoryStats"></div>
+  <button class="restart-btn" onclick="restartGame()">نبرد دوباره</button>
+</div>
+
+<!-- MOBILE CONTROLS -->
+<div id="mobileControls">
+  <div class="joystick-zone" id="joystickZone"></div>
+  <div class="action-buttons">
+    <button class="action-btn" id="btnMusou" onclick="mobileAction('musou')">M</button>
+    <button class="action-btn" id="btnCharge" onclick="mobileAction('charge')">C</button>
+    <button class="action-btn" id="btnAttack" onclick="mobileAction('attack')">A</button>
+    <button class="action-btn" id="btnDash" onclick="mobileAction('dash')">D</button>
+    <button class="action-btn" id="btnBlock" onclick="mobileAction('block')">B</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+// WARLORDS OF THE THREE KINGDOMS — Complete Game Engine
+// ═══════════════════════════════════════════════════════════
+
+// ─── FACTION CONFIG ───
+const FACTIONS = {
+  wei: { name:'Wei', color:0x4488ff, accent:0x88bbff, ground:0x2a3a5c },
+  shu: { name:'Shu', color:0xff4444, accent:0xff8888, ground:0x5c2a2a },
+  wu:  { name:'Wu',  color:0x44ff88, accent:0x88ffbb, ground:0x2a5c3a }
+};
+
+// ─── HEROES DATA ───
+const HEROES = [
+  { id:'caocao', name:'Cao Cao', nameFa:'چاو تسو', faction:'wei', weapon:'sword', hp:100, atk:12, def:8, speed:1.0, musouSpecial:'Execution Slash', color:0x2244aa, accent:0x88aaff, emoji:'👤' },
+  { id:'sima yi', name:'Sima Yi', nameFa:'سیما یی', faction:'wei', weapon:'staff', hp:80, atk:15, def:6, speed:0.9, musouSpecial:'Starfall Barrage', color:0x333366, accent:0x9999cc, emoji:'🧙' },
+  { id:'zhang liao', name:'Zhang Liao', nameFa:'ژانگ لیاو', faction:'wei', weapon:'spear', hp:95, atk:13, def:9, speed:1.1, musouSpecial:'Charge of the Brave', color:0x2255aa, accent:0x66aaff, emoji:'⚔️' },
+  { id:'liu bei', name:'Liu Bei', nameFa:'لیو بی', faction:'shu', weapon:'sword', hp:110, atk:10, def:10, speed:0.9, musouSpecial:'Dragon Roar', color:0xaa2222, accent:0xff8888, emoji:'🐉' },
+  { id:'guanyu', name:'Guan Yu', nameFa:'گوان یو', faction:'shu', weapon:'halberd', hp:130, atk:16, def:7, speed:0.7, musouSpecial:'Green Dragon Strike', color:0xcc1111, accent:0xff5555, emoji:'🗡️' },
+  { id:'zhang fei', name:'Zhang Fei', nameFa:'ژانگ فِی', faction:'shu', weapon:'spear', hp:120, atk:14, def:8, speed:0.8, musouSpecial:'Battle Cry', color:0x881111, accent:0xdd4444, emoji:'💀' },
+  { id:'sun quan', name:'Sun Quan', nameFa:'سون کوان', faction:'wu', weapon:'bow', hp:85, atk:11, def:7, speed:1.0, musouSpecial:'Arrow Storm', color:0x228844, accent:0x66dd88, emoji:'🏹' },
+  { id:'zhou yu', name:'Zhou Yu', nameFa:'ژو یو', faction:'wu', weapon:'sword', hp:90, atk:13, def:8, speed:1.1, musouSpecial:'Fire Fleet', color:0x116633, accent:0x44cc77, emoji:'🔥' },
+  { id:'luna ying', name:'Luna Ying', nameFa:'لونا یینگ', faction:'wu', weapon:'fan', hp:75, atk:14, def:5, speed:1.3, musouSpecial:'Wind Blade', color:0x33aa66, accent:0x88ffbb, emoji:'🌸' },
+  { id:'dian wei', name:'Dian Wei', nameFa:'دیان وی', faction:'wei', weapon:'dual_hooks', hp:140, atk:12, def:12, speed:0.6, musouSpecial:'Wall of Steel', color:0x4455aa, accent:0xaa88ff, emoji:'🛡️' },
+  { id:'zhao yun', name:'Zhao Yun', nameFa:'ژائو یون', faction:'shu', weapon:'spear', hp:100, atk:15, def:9, speed:1.2, musouSpecial:'Dragon Soars', color:0xcc3333, accent:0xffaa44, emoji:'🐲' },
+  { id:'luxun', name:'Lu Xun', nameFa:'لو شون', faction:'wu', weapon:'fan', hp:70, atk:16, def:4, speed:1.0, musouSpecial:'Burning Fields', color:0x226644, accent:0x44ee88, emoji:'🌀' }
+];
+
+// ─── GLOBALS ───
+let scene, camera, renderer, clock;
+let player, enemies = [], particles = [], projectiles = [];
+let selectedFaction = 'wei', selectedHero = null;
+let gameState = 'loading'; // loading, title, charselect, playing, gameover, victory
+let audioCtx, masterGain;
+let comboCount = 0, koCount = 0, waveNum = 1, maxWaves = 10;
+let enemiesPerWave = 15, waveActive = false, waveDelay = 0;
+let screenShake = 0, hitStop = 0, slowMo = 1;
+let keys = {}, joystickActive = false, joystickDir = {x:0,y:0};
+let mobileTouch = {};
+let minimapCtx;
+let lastTime = 0;
+
+// ─── LOADING ───
+function setProgress(p, text) {
+  document.getElementById('loadingBar').style.width = p + '%';
+  if(text) document.getElementById('loadingText').textContent = text;
+}
+
+// ─── AUDIO ENGINE ───
+function initAudio() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.3;
+  masterGain.connect(audioCtx.destination);
+}
+
+function playSound(type, vol=1) {
+  if(!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const g = audioCtx.createGain();
+  g.connect(masterGain);
+  
+  if(type === 'hit') {
+    const o = audioCtx.createOscillator();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(200, now);
+    o.frequency.exponentialRampToValueAtTime(80, now+0.1);
+    g.gain.setValueAtTime(0.3*vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.15);
+    o.connect(g); o.start(now); o.stop(now+0.15);
+  } else if(type === 'charged') {
+    const o = audioCtx.createOscillator();
+    o.type = 'square'; o.frequency.setValueAtTime(300, now);
+    o.frequency.exponentialRampToValueAtTime(100, now+0.3);
+    g.gain.setValueAtTime(0.4*vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.35);
+    o.connect(g); o.start(now); o.stop(now+0.35);
+  } else if(type === 'ko') {
+    const o = audioCtx.createOscillator();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(400, now);
+    o.frequency.exponentialRampToValueAtTime(50, now+0.5);
+    g.gain.setValueAtTime(0.5*vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.5);
+    o.connect(g); o.start(now); o.stop(now+0.5);
+  } else if(type === 'musou') {
+    for(let i=0;i<3;i++){
+      const o = audioCtx.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(150+i*100, now+i*0.05);
+      o.frequency.exponentialRampToValueAtTime(600, now+i*0.05+0.3);
+      const gg = audioCtx.createGain();
+      gg.gain.setValueAtTime(0.25*vol, now+i*0.05);
+      gg.gain.exponentialRampToValueAtTime(0.001, now+i*0.05+0.4);
+      gg.connect(masterGain); o.connect(gg);
+      o.start(now+i*0.05); o.stop(now+i*0.05+0.4);
+    }
+  } else if(type === 'block') {
+    const o = audioCtx.createOscillator();
+    o.type = 'triangle'; o.frequency.setValueAtTime(800, now);
+    o.frequency.exponentialRampToValueAtTime(400, now+0.08);
+    g.gain.setValueAtTime(0.2*vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.1);
+    o.connect(g); o.start(now); o.stop(now+0.1);
+  } else if(type === 'dash') {
+    const o = audioCtx.createOscillator();
+    o.type = 'sine'; o.frequency.setValueAtTime(300, now);
+    o.frequency.exponentialRampToValueAtTime(600, now+0.12);
+    g.gain.setValueAtTime(0.15*vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.15);
+    o.connect(g); o.start(now); o.stop(now+0.15);
+  } else if(type === 'wave') {
+    const o = audioCtx.createOscillator();
+    o.type = 'triangle'; o.frequency.setValueAtTime(440, now);
+    o.frequency.setValueAtTime(550, now+0.1);
+    o.frequency.setValueAtTime(660, now+0.2);
+    g.gain.setValueAtTime(0.3*vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.4);
+    o.connect(g); o.start(now); o.stop(now+0.4);
+  } else if(type === 'hurt') {
+    const o = audioCtx.createOscillator();
+    o.type = 'square'; o.frequency.setValueAtTime(150, now);
+    o.frequency.exponentialRampToValueAtTime(80, now+0.15);
+    g.gain.setValueAtTime(0.25*vol, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.2);
+    o.connect(g); o.start(now); o.stop(now+0.2);
+  }
+}
+
+// Background drone
+let bg DroneOsc = null;
+function startBGMusic() {
+  if(!audioCtx || bgDrone) return;
+  const o1 = audioCtx.createOscillator();
+  const o2 = audioCtx.createOscillator();
+  o1.type = 'sawtooth'; o1.frequency.value = 55;
+  o2.type = 'sine'; o2.frequency.value = 82.5;
+  const g1 = audioCtx.createGain(); g1.gain.value = 0.06;
+  const g2 = audioCtx.createGain(); g2.gain.value = 0.04;
+  g1.connect(masterGain); g2.connect(masterGain);
+  o1.connect(g1); o2.connect(g2);
+  o1.start(); o2.start();
+  bgDrone = {osc1:o1, osc2:o2, gain1:g1, gain2:g2};
+}
+let bgDrone = null;
+function stopBGMusic() {
+  if(bgDrone){ try{bgDrone.osc1.stop();bgDrone.osc2.stop();}catch(e){} bgDrone=null; }
+}
+
+// ─── THREE.JS SETUP ───
+function initThree() {
+  const canvas = document.getElementById('gameCanvas');
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1a0a0a);
+  scene.fog = new THREE.FogExp2(0x1a0a0a, 0.008);
+
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
+  
+  renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+
+  clock = new THREE.Clock();
+
+  // Lighting
+  const ambient = new THREE.AmbientLight(0x334455, 0.6);
+  scene.add(ambient);
+
+  const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5);
+  dirLight.position.set(50, 80, 30);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.set(2048, 2048);
+  dirLight.shadow.camera.left = -100; dirLight.shadow.camera.right = 100;
+  dirLight.shadow.camera.top = 100; dirLight.shadow.camera.bottom = -100;
+  scene.add(dirLight);
+
+  const rimLight = new THREE.DirectionalLight(0x4466aa, 0.4);
+  rimLight.position.set(-30, 20, -50);
+  scene.add(rimLight);
+
+  // Ground
+  const groundGeo = new THREE.PlaneGeometry(400, 400, 80, 80);
+  const groundMat = new THREE.MeshStandardMaterial({ 
+    color: 0x3a2a1a, roughness:0.9, metalness:0.1 
+  });
+  // Add some vertex displacement for terrain
+  const pos = groundGeo.attributes.position;
+  for(let i=0;i<pos.count;i++){
+    pos.setZ(i, pos.getZ(i) + (Math.random()-0.5)*1.5);
+  }
+  groundGeo.computeVertexNormals();
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI/2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Grid lines on ground
+  const gridHelper = new THREE.GridHelper(400, 80, 0x2a1a0a, 0x1a0a0a);
+  gridHelper.position.y = 0.05;
+  scene.add(gridHelper);
+
+  // Minimap
+  const mmCanvas = document.getElementById('minimapCanvas');
+  minimapCtx = mmCanvas.getContext('2d');
+
+  window.addEventListener('resize', onResize);
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ─── PROCEDURAL CHARACTER BUILDER ───
+function createCharacterMesh(factionColor, accentColor, isPlayer=false) {
+  const group = new THREE.Group();
+  const matBody = new THREE.MeshStandardMaterial({ color: factionColor, roughness:0.6, metalness:0.3 });
+  const matSkin = new THREE.MeshStandardMaterial({ color: 0xddaa88, roughness:0.8 });
+  const matAccent = new THREE.MeshStandardMaterial({ color: accentColor, roughness:0.4, metalness:0.5 });
+  const matWeapon = new THREE.MeshStandardMaterial({ color: 0xccccaa, roughness:0.3, metalness:0.8 });
+  const matEye = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: accentColor, emissiveIntensity: 0.3 });
+
+  // Torso
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.0, 0.5), matBody);
+  torso.position.y = 1.5; torso.castShadow = true;
+  group.add(torso);
+
+  // Shoulder armor
+  const shoulderL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.25, 0.4), matAccent);
+  shoulderL.position.set(-0.55, 1.9, 0); shoulderL.castShadow = true;
+  group.add(shoulderL);
+  const shoulderR = shoulderL.clone();
+  shoulderR.position.x = 0.55;
+  group.add(shoulderR);
+
+  // Head
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), matSkin);
+  head.position.y = 2.3; head.castShadow = true;
+  group.add(head);
+
+  // Helmet/hair
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 6, 0, Math.PI*2, 0, Math.PI*0.6), matAccent);
+  helmet.position.y = 2.35;
+  group.add(helmet);
+
+  // Eyes (emissive)
+  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), matEye);
+  eyeL.position.set(-0.1, 2.35, 0.27);
+  group.add(eyeL);
+  const eyeR = eyeL.clone();
+  eyeR.position.x = 0.1;
+  group.add(eyeR);
+
+  // Legs
+  const legGeo = new THREE.BoxGeometry(0.25, 0.8, 0.3);
+  const legL = new THREE.Mesh(legGeo, matBody);
+  legL.position.set(-0.2, 0.6, 0); legL.castShadow = true;
+  group.add(legL);
+  const legR = legL.clone();
+  legR.position.x = 0.2;
+  group.add(legR);
+
+  // Boots
+  const bootGeo = new THREE.BoxGeometry(0.28, 0.2, 0.35);
+  const bootL = new THREE.Mesh(bootGeo, matAccent);
+  bootL.position.set(-0.2, 0.1, 0.02);
+  group.add(bootL);
+  const bootR = bootL.clone();
+  bootR.position.x = 0.2;
+  group.add(bootR);
+
+  // Arms
+  const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+  const armL = new THREE.Mesh(armGeo, matBody);
+  armL.position.set(-0.55, 1.4, 0); armL.castShadow = true;
+  group.add(armL);
+  const armR = armL.clone();
+  armR.position.x = 0.55;
+  group.add(armR);
+
+  // Weapon
+  const weaponGroup = new THREE.Group();
+  weaponGroup.position.set(0.55, 1.4, 0);
+  
+  if(isPlayer) {
+    // Sword for player

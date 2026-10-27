@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dynasty 3D Battle</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Vazirmatn', sans-serif; 
+            background: #0a0a0a; 
+            color: #fff; 
+            overflow: hidden; 
+            touch-action: none;
+        }
+        #game-container { position: relative; width: 100vw; height: 100vh; }
+        canvas { display: block; width: 100%; height: 100%; }
+        
+        .ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+        }
+        
+        .hud-top {
+            position: absolute; top: 20px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        
+        .health-bar-container {
+            width: 300px; background: rgba(0,0,0,0.5); border: 2px solid gold;
+            padding: 4px; border-radius: 8px; backdrop-filter: blur(5px);
+        }
+        .health-bar-fill { height: 15px; width: 100%; background: linear-gradient(90deg, red, orange); transition: width 0.2s; }
+        .enemy-health-bar-fill { background: linear-gradient(90deg, purple, red); width: 0%; }
+        
+        .score-panel {
+            background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 10px;
+            border: 1px solid rgba(255,215,0,0.3); text-align: center;
+        }
+        .score-value { font-size: 24px; font-weight: bold; color: gold; }
+        .wave-label { font-size: 14px; color: #ccc; }
+        
+        .combo-counter {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 48px; font-weight: 900; color: gold; text-shadow: 0 0 10px orange;
+            opacity: 0; transition: opacity 0.1s;
+        }
+        
+        .crosshair {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 50%; pointer-events: none;
+        }
+        .crosshair::after {
+            content: ''; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px;
+            background: red; transform: translate(-50%, -50%); border-radius: 50%;
+        }
+        
+        .mobile-controls {
+            position: absolute; bottom: 20px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between; align-items: flex-end;
+        }
+        .dpad {
+            width: 150px; height: 150px; position: relative;
+            background: rgba(0,0,0,0.3); border-radius: 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .dpad-btn {
+            position: absolute; width: 40px; height: 40px; background: rgba(255,255,255,0.1);
+            border-radius: 50%; border: 1px solid rgba(255,255,255,0.3);
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .dpad-up { top: 10px; left: 55px; }
+        .dpad-down { bottom: 10px; left: 55px; }
+        .dpad-left { top: 55px; left: 10px; }
+        .dpad-right { top: 55px; right: 10px; }
+        
+        .action-btns {
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .action-btn {
+            width: 60px; height: 60px; background: rgba(255,0,0,0.3);
+            border-radius: 50%; border: 2px solid rgba(255,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; color: white; pointer-events: auto;
+        }
+        .action-btn.jump { background: rgba(0,100,255,0.3); border-color: rgba(0,100,255,0.5); }
+        
+        .pause-menu {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: flex; align-items: center;
+            justify-content: center; flex-direction: column; gap: 20px;
+        }
+        .pause-menu.hidden { display: none; }
+        .menu-btn {
+            padding: 15px 40px; background: rgba(255,215,0,0.2); border: 2px solid gold;
+            border-radius: 10px; color: gold; font-size: 18px; cursor: pointer;
+            pointer-events: auto; transition: all 0.3s;
+        }
+        .menu-btn:hover { background: gold; color: #000; }
+        
+        .start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1a0a00, #0a0a1a);
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: 30px; z-index: 20;
+        }
+        .start-screen.hidden { display: none; }
+        .game-title { font-size: 48px; color: gold; text-shadow: 0 0 20px orange; }
+        .start-btn {
+            padding: 20px 60px; background: gold; color: #000; font-size: 24px;
+            font-weight: bold; border: none; border-radius: 10px; cursor: pointer;
+            pointer-events: auto;
+        }
+        .instructions { font-size: 14px; color: #ccc; text-align: center; max-width: 400px; }
+        
+        @media (max-width: 768px) {
+            .health-bar-container { width: 200px; }
+            .score-value { font-size: 18px; }
+            .combo-counter { font-size: 36px; }
+            .dpad { width: 120px; height: 120px; }
+            .action-btn { width: 50px; height: 50px; font-size: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div class="ui-layer">
+            <div class="hud-top">
+                <div class="health-bar-container">
+                    <div class="health-bar-fill" id="player-health"></div>
+                </div>
+                <div class="score-panel">
+                    <div class="wave-label" id="wave-display">موج ۱</div>
+                    <div class="score-value" id="score-display">۰</div>
+                </div>
+                <div class="health-bar-container">
+                    <div class="health-bar-fill enemy-health-bar-fill" id="enemy-health"></div>
+                </div>
+            </div>
+            
+            <div class="combo-counter" id="combo-counter">COMBO x1</div>
+            <div class="crosshair"></div>
+            
+            <div class="mobile-controls">
+                <div class="dpad" id="dpad">
+                    <div class="dpad-btn dpad-up">↑</div>
+                    <div class="dpad-btn dpad-down">↓</div>
+                    <div class="dpad-btn dpad-left">←</div>
+                    <div class="dpad-btn dpad-right">→</div>
+                </div>
+                <div class="action-btns">
+                    <div class="action-btn jump" id="btn-jump">JUMP</div>
+                    <div class="action-btn" id="btn-attack">ATTACK</div>
+                </div>
+            </div>
+            
+            <div class="pause-menu hidden" id="pause-menu">
+                <h2 style="color: gold;">بازی متوقف شد</h2>
+                <button class="menu-btn" id="btn-resume">ادامه بازی</button>
+                <button class="menu-btn" id="btn-restart">شروع مجدد</button>
+                <button class="menu-btn" id="btn-quit">خروج</button>
+            </div>
+        </div>
+        
+        <div class="start-screen" id="start-screen">
+            <h1 class="game-title">Dynasty 3D Battle</h1>
+            <p class="instructions">
+                با WASD یا دکمه‌های جهت‌نما حرکت کنید<br>
+                با کلیک یا دکمه Attack حمله کنید<br>
+                با Shift پرش کنید | Esc برای توقف بازی
+            </p>
+            <button class="start-btn" id="btn-start">شروع نبرد</button>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+    <script>
+        // Game State
+        const GameState = {
+            MENU: 'menu',
+            PLAYING: 'playing',
+            PAUSED: 'paused',
+            GAME_OVER: 'gameOver'
+        };
+        
+        let gameState = GameState.MENU;
+        let score = 0;
+        let combo = 1;
+        let maxCombo = 1;
+        let wave = 1;
+        let enemiesDefeated = 0;
+        const enemiesPerWave = 5;
+        
+        // Three.js Setup
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x1a0a00, 10, 100);
+        scene.background = new THREE.Color(0x1a0a00);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({
+            canvas: document.getElementById('game-canvas'),
+            antialias: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+        
+        const dirLight = new THREE.DirectionalLight(0xff8800, 1.5);
+        dirLight.position.set(5, 10, 5);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 50;
+        dirLight.shadow.camera.left = -15;
+        dirLight.shadow.camera.right = 15;
+        dirLight.shadow.camera.top = 15;
+        dirLight.shadow.camera.bottom = -15;
+        scene.add(dirLight);
+        
+        const pointLight = new THREE.PointLight(0xffaa00, 2, 10);
+        pointLight.position.set(0, 3, 0);
+        scene.add(pointLight);
+        
+        // Ground
+        const groundGeometry = new THREE.PlaneGeometry(50, 50);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2a1a0a,
+            roughness: 0.8,
+            metalness: 0.1
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        // Create player character
+        function createCharacter(color, name, isPlayer) {
+            const group = new THREE.Group();
+            
+            // Body
+            const bodyGeo = new THREE.CylinderGeometry(0.3, 0.4, 1.5, 8);
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: color,
+                roughness: 0.3,
+                metalness: 0.6
+            });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.75;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            group.add(body);
+            
+            // Head
+            const headGeo = new THREE.SphereGeometry(0.25, 16, 16);
+            const headMat = new THREE.MeshStandardMaterial({
+                color: 0xffcc99,
+                roughness: 0.5
+            });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 1.8;
+            head.castShadow = true;
+            group.add(head);
+            
+            // Sword
+            const swordGeo = new THREE.BoxGeometry(0.05, 1.2, 0.1);
+            const swordMat = new THREE.MeshStandardMaterial({
+                color: 0xcccccc,
+                roughness: 0.1,
+                metalness: 0.9
+            });
+            const sword = new THREE.Mesh(swordGeo, swordMat);
+            sword.position.set(0.4, 1.2, 0);
+            sword.rotation.z = Math.PI / 4;
+            sword.castShadow = true;
+            group.add(sword);
+            
+            // Label
+            if (isPlayer) {
+                const labelCanvas = document.createElement('canvas');
+                labelCanvas.width = 128;
+                labelCanvas.height = 32;
+                const ctx = labelCanvas.getContext('2d');
+                ctx.fillStyle = 'gold';
+                ctx.font = 'bold 20px Vazirmatn';
+                ctx.textAlign = 'center';
+                ctx.fillText(name, 64, 24);
+                const labelTexture = new THREE.CanvasTexture(labelCanvas);
+                const labelGeo = new THREE.PlaneGeometry(1, 0.25);
+                const labelMat = new THREE.MeshBasicMaterial({
+                    map: labelTexture,
+                    transparent: true,
+                    side: THREE.DoubleSide
+                });
+                const label = new THREE.Mesh(labelGeo, labelMat);
+                label.position.y = 2.3;
+                group.add(label);
+            }
+            
+            group.userData = {
+                name: name,
+                health: isPlayer ? 100 : 50 + wave * 10,
+                maxHealth: isPlayer ? 100 : 50 + wave * 10,
+                isPlayer: isPlayer,
+                attackPower: isPlayer ? 15 : 8 + wave * 2,
+                attackCooldown: 0,
+                isAttacking: false,
+                attackTime: 0,
+                hitTime: 0
+            };
+            
+            return group;
+        }
+        
+        const player = createCharacter(0x0066ff, 'شما', true);
+        player.position.set(0, 0, 0);
+        scene.add(player);
+        
+        let enemies = [];
+        let particles = [];
+        
+        function createEnemy() {
+            const colors = [0xcc0000, 0x990099, 0x660066, 0xaa0000, 0x880044];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const enemy = createCharacter(color, 'دشمن', false);
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 15 + Math.random() * 10;
+            enemy.position.set(Math.cos(angle) * distance, 0, Math.sin(angle) * distance);
+            enemy.userData.health = 50 + wave * 10;
+            enemy.userData.maxHealth = 50 + wave * 10;
+            enemy.userData.attackPower = 8 + wave * 2;
+            scene.add(enemy);
+            enemies.push(enemy);
+        }
+        
+        function spawnWave() {
+            for (let i = 0; i < enemiesPerWave; i++) {
+                createEnemy();
+            }
+        }
+        
+        function createParticle(position, color) {
+            const geo = new THREE.SphereGeometry(0.1, 8, 8);
+            const mat = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 1
+            });
+            const particle = new THREE.Mesh(geo, mat);
+            particle.position.copy(position);
+            particle.userData.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 2,
+                Math.random() * 3,
+                (Math.random() - 0.5) * 2
+            );
+            particle.userData.life = 1.0;
+            scene.add(particle);
+            particles.push(particle);
+        }
+        
+        // Input handling
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Escape') {
+                togglePause();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+        
+        // Mobile controls
+        const dpad = document.getElementById('dpad');
+        const btnJump = document.getElementById('btn-jump');
+        const btnAttack = document.getElementById('btn-attack');
+        
+        let mobileInput = {
+            up: false,
+            down: false,
+            left: false,
+            right: false,
+            jump: false,
+            attack: false
+        };
+        
+        function setupTouchControls(element, key) {
+            element.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                mobileInput[key] = true;
+            });
+            element.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                mobileInput[key] = false;
+            });
+        }
+        
+        document.querySelector('.dpad-up').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            mobileInput.up = true;
+        });
+        document.querySelector('.dpad-up').addEventListener('touchend', (e) => {
+            e.preventDefault();
+            mobileInput.up = false;
+        });
+        
+        document.querySelector('.dpad-down').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            mobileInput.down = true;
+        });
+        document.querySelector('.dpad-down').addEventListener('touchend', (e) => {
+            e.preventDefault();
+            mobileInput.down = false;
+        });
+        
+        document.querySelector('.dpad-left').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            mobileInput.left = true;
+        });
+        document.querySelector('.dpad-left').addEventListener('touchend', (e) => {
+            e.preventDefault();
+            mobileInput.left = false;
+        });
+        
+        document.querySelector('.dpad-right').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            mobileInput.right = true;
+        });
+        document.querySelector('.dpad-right').addEventListener('touchend', (e) => {
+            e.preventDefault();
+            mobileInput.right = false;
+        });
+        
+        btnJump.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            mobileInput.jump = true;
+        });
+        btnJump.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            mobileInput.jump = false;
+        });
+        
+        btnAttack.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            mobileInput.attack = true;
+        });
+        btnAttack.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            mobileInput.attack = false;
+        });
+        
+        // Game logic
+        let playerVelocity = new THREE.Vector3();
+        let playerOnGround = true;
+        let lastAttackTime = 0;
+        let attackCooldownDuration = 500;
+        
+        function getPlayerInput() {
+            let moveX = 0, moveZ = 0, jump = false, attack = false;
+            
+            if (keys['KeyW'] || keys['ArrowUp'] || mobileInput.up) moveZ -= 1;
+            if (keys['KeyS'] || keys['ArrowDown'] || mobileInput.down) moveZ += 1;
+            if (keys['KeyA'] || keys['ArrowLeft'] || mobileInput.left) moveX -= 1;
+            if (keys['KeyD'] || keys['ArrowRight'] || mobileInput.right) moveX += 1;
+            if (keys['ShiftLeft'] || keys['Space'] || mobileInput.jump) jump = true;
+            if (keys['KeyJ'] || keys['Enter'] || mobileInput.attack) attack = true;
+            
+            return { moveX, moveZ, jump, attack };
+        }
+        
+        function updatePlayer(dt, time) {
+            const input = getPlayerInput();
+            const speed = 8;
+            
+            // Movement
+            if (input.moveX !== 0 || input.moveZ !== 0) {
+                const moveVec = new THREE.Vector3(input.moveX, 0, input.moveZ).normalize();
+                moveVec.applyAxisAngle(new THREE.Vector3(0,1,0), Math.PI/2);
+                player.position.add(moveVec.multiplyScalar(speed * dt));
+                player.rotation.y = Math.atan2(moveVec.x, moveVec.z);
+            }
+            
+            // Jump
+            if (input.jump && playerOnGround) {
+                playerVelocity.y = 8;
+                playerOnGround = false;
+            }
+            
+            // Gravity
+            playerVelocity.y -= 20 * dt;
+            player.position.y += playerVelocity.y * dt;
+            
+            if (player.position.y <= 0) {
+                player.position.y = 0;
+                playerVelocity.y = 0;
+                playerOnGround = true;
+            }
+            
+            // Attack
+            if (input.attack && time - lastAttackTime > attackCooldownDuration) {
+                lastAttackTime = time;
+                player.userData.isAttacking = true;
+                player.userData.attackTime = time;
+                player.userData.hitTime = 0;
+                
+                // Check for enemy hits
+                const attackRange = 2;
+                const attackAngle = Math.PI / 4;
+                
+                enemies.forEach(enemy => {
+                    const dist = player.position.distanceTo(enemy.position);
+                    if (dist < attackRange) {
+                        const angleToEnemy = Math.atan2(
+                            enemy.position.x - player.position.x,
+                            enemy.position.z - player.position.z
+                        );
+                        const angleDiff = Math.abs(angleToEnemy - player.rotation.y);
+                        
+                        if (angleDiff < attackAngle) {
+                            enemy.userData.health -= player.userData.attackPower;
+                            enemy.userData.hitTime = time;
+                            
+                            // Create hit particles
+                            for (let i = 0; i < 5; i++) {
+                                createParticle(enemy.position.clone(), 0xffff00);
+                            }
+                            
+                            if (enemy.userData.health <= 0) {
+                                destroyEnemy(enemy);
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Update attack animation
+            if (player.userData.isAttacking) {
+                const elapsed = time - player.userData.attackTime;
+                if (elapsed < 200) {
+                    player.rotation.z = Math.sin(elapsed / 50) * 0.5;
+                } else {
+                    player.userData.isAttacking = false;
+                    player.rotation.z = 0;
+                }
+            }
+        }
+        
+        function destroyEnemy(enemy) {
+            scene.remove(enemy);
+            enemies = enemies.filter(e => e !== enemy);
+            score += 100 * combo;
+            enemiesDefeated++;
+            
+            if (enemiesDefeated % enemiesPerWave === 0) {
+                wave++;
+                document.getElementById('wave-display').textContent = 'موج ' + wave;
+                spawnWave();
+            }
+            
+            if (enemies.length === 0) {
+                score += 500;
+                spawnWave();
+            }
+            
+            updateUI();
+        }
+        
+        function updateEnemies(dt, time) {
+            enemies.forEach(enemy => {
+                // Move toward player
+                const dirToPlayer = new THREE.Vector3()
+                    .subVectors(player.position, enemy.position)
+                    .normalize();
+                
+                const speed = 3 + wave * 0.5;
+                enemy.position.add(dirToPlayer.multiplyScalar(speed * dt));
+                enemy.lookAt(player.position);
+                
+                // Attack player
+                const dist = enemy.position.distanceTo(player.position);
+                if (dist < 2 && time - enemy.userData.attackTime > 1000) {
+                    enemy.userData.attackTime = time;
+                    enemy.userData.isAttacking = true;
+                    enemy.rotation.z = 0.5;
+                    
+                    setTimeout(() => {
+                        enemy.userData.isAttacking = false;
+                        enemy.rotation.z = 0;
+                    }, 200);
+                    
+                    if (player.position.distanceTo(enemy.position) < 1.5) {
+                        player.userData.health -= enemy.userData.attackPower;
+                        updateUI();
+                        
+                        if (player.userData.health <= 0) {
+                            gameOver();
+                        }
+                    }
+                }
+                
+                // Hit animation
+                if (enemy.userData.hitTime > 0) {
+                    const elapsed = time - enemy.userData.hitTime;
+                    if (elapsed < 100) {
+                        enemy.material.color.setHex(0xffffff);
+                    } else {
+                        enemy.material.color.setHex(0xcc0000);
+                        enemy.userData.hitTime = 0;
+                    }
+                }
+            });
+        }
+        
+        function updateParticles(dt) {
+            particles.forEach((particle, index) => {
+                particle.position.add(particle.userData.velocity);
+                particle.userData.velocity.y -= 9.8 * dt;
+                particle.userData.life -= dt * 2;
+                
+                if (particle.userData.life <= 0) {
+                    scene.remove(particle);
+                    particles.splice(index, 1);
+                }
+            });
+        }
+        
+        function updateCamera() {
+            const cameraOffset = new THREE.Vector3(0, 5, 8);
+            camera.position.copy(player.position).add(cameraOffset);
+            camera.lookAt(player.position);
+        }
+        
+        function updateUI() {
+            document.getElementById('player-health').style.width = 
+                (player.userData.health / player.userData.maxHealth * 100) + '%';
+            document.getElementById('score-display').textContent = score;
+            
+            if (combo > 1) {
+                const comboEl = document.getElementById('combo-counter');
+                comboEl.textContent = 'COMBO x' + combo;
+                comboEl.style.opacity = 1;
+            }
+        }
+        
+        function togglePause() {
+            if (gameState === GameState.PLAYING) {
+                gameState = GameState.PAUSED;
+                document.getElementById('pause-menu').classList.remove('hidden');
+            } else if (gameState === GameState.PAUSED) {
+                gameState = GameState.PLAYING;
+                document.getElementById('pause-menu').classList.add('hidden');
+            }
+        }
+        
+        function gameOver() {
+            gameState = GameState.GAME_OVER;
+            document.getElementById('pause-menu').classList.remove('hidden');
+            document.querySelectorAll('.menu-btn')[0].textContent = 'بازی دوباره';
+        }
+        
+        function restartGame() {
+            // Reset player
+            player.position.set(0, 0, 0);
+            player.userData.health = 100;
+            playerVelocity.set(0, 0, 0);
+            playerOnGround = true;
+            
+            // Remove enemies
+            enemies.forEach(enemy => scene.remove(enemy));
+            enemies = [];
+            particles.forEach(p => scene.remove(p));
+            particles = [];
+            
+            // Reset stats
+            score = 0;
+            combo = 1;
+            wave = 1;
+            enemiesDefeated = 0;
+            lastAttackTime = 0;
+            
+            document.getElementById('wave-display').textContent = 'موج ۱';
+            spawnWave();
+            updateUI();
+            
+            gameState = GameState.PLAYING;
+            document.getElementById('pause-menu').classList.add('hidden');
+        }
+        
+        // Event listeners
+        document.getElementById('btn-start').addEventListener('click', () => {
+            document.getElementById('start-screen').classList.add('hidden');
+            spawnWave();
+            gameState = GameState.PLAYING;
+            updateUI();
+        });
+        
+        document.getElementById('btn-resume').addEventListener('click', togglePause);
+        document.getElementById('btn-restart').addEventListener('click', restartGame);
+        document.getElementById('btn-quit').addEventListener('click', () => {
+            window.location.reload();
+        });
+        
+        // Game loop
+        let lastTime = 0;
+        function gameLoop(time) {
+            requestAnimationFrame(gameLoop);
+            
+            const dt = (time - lastTime) / 1000;
+            lastTime = time;
+            
+            if (gameState === GameState.PLAYING) {
+                updatePlayer(dt, time);
+                updateEnemies(dt, time);
+                updateParticles(dt);
+                updateCamera();
+                
+                // Combo decay
+                if (time - lastAttackTime > 3000) {
+                    combo = 1;
+                }
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Start game loop
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

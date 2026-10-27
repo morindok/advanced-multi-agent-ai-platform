@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mushroom Runner - قارچ خور</title>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --secondary: #2196F3;
+            --accent: #FF5252;
+            --dark: #1a1a2e;
+            --light: #e0e0e0;
+            --gold: #FFD700;
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, var(--dark) 0%, #16213e 100%);
+            color: var(--light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 1024px;
+            height: 100%;
+            max-height: 600px;
+            background: #0f3460;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 10px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-item {
+            background: rgba(0,0,0,0.6);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .heart { color: var(--accent); font-size: 18px; }
+        .score { color: var(--gold); }
+        .level { color: var(--secondary); }
+
+        /* Menus */
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 20, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            transition: opacity 0.3s;
+        }
+
+        .menu-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .menu-title {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0 var(--dark);
+        }
+
+        .menu-subtitle {
+            font-size: 18px;
+            color: var(--light);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .btn:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .game-over-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-label { font-size: 12px; opacity: 0.7; }
+        .stat-value { font-size: 24px; font-weight: bold; color: var(--gold); }
+
+        .win-message {
+            color: var(--gold);
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        /* Touch Controls */
+        #touch-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            display: none;
+            justify-content: space-between;
+            padding: 10px;
+            z-index: 15;
+        }
+
+        .touch-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .touch-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            user-select: none;
+        }
+
+        .touch-btn.active {
+            background: rgba(255,255,255,0.4);
+        }
+
+        @media (max-width: 768px) {
+            #touch-controls { display: flex; }
+            .menu-title { font-size: 32px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div class="hud-item level" id="levelDisplay">Level 1/5</div>
+        <div class="hud-item">
+            <span class="heart" id="livesDisplay">❤️❤️❤️</span>
+        </div>
+        <div class="hud-item score">
+            <span>🍄</span> <span id="scoreDisplay">0</span>
+        </div>
+    </div>
+
+    <!-- Start Menu -->
+    <div id="startMenu" class="menu-overlay">
+        <h1 class="menu-title">MUSHROOM RUNNER</h1>
+        <p class="menu-subtitle">قارچ خور سگرماریو<br>از مرحله 1 تا 5 بگذر و قارچ‌ها را جمع کن!</p>
+        <button class="btn" id="startBtn">شروع بازی</button>
+        <p style="margin-top:20px; font-size:14px; opacity:0.7">
+            کلیدهای: جهت‌نما برای حرکت، فاصله برای پرش
+        </p>
+    </div>
+
+    <!-- Game Over Menu -->
+    <div id="gameOverMenu" class="menu-overlay hidden">
+        <h1 class="menu-title" id="gameOverTitle" style="color:var(--accent)">Game Over</h1>
+        <div class="game-over-stats">
+            <div class="stat-box">
+                <div class="stat-label">امتیاز</div>
+                <div class="stat-value" id="finalScore">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">مرحله</div>
+                <div class="stat-value" id="finalLevel">1</div>
+            </div>
+        </div>
+        <button class="btn" id="restartBtn">دوباره بازی کن</button>
+    </div>
+
+    <!-- Win Menu -->
+    <div id="winMenu" class="menu-overlay hidden">
+        <div class="win-message">🏆 تبریک! شما همه مراحل را کامل کردید!</div>
+        <div class="game-over-stats">
+            <div class="stat-box">
+                <div class="stat-label">امتیاز نهایی</div>
+                <div class="stat-value" id="winScore">0</div>
+            </div>
+        </div>
+        <button class="btn" id="playAgainBtn">بازی مجدد</button>
+    </div>
+
+    <!-- Touch Controls -->
+    <div id="touch-controls">
+        <div class="touch-group">
+            <div class="touch-btn" id="btnLeft">◀</div>
+            <div class="touch-btn" id="btnRight">▶</div>
+        </div>
+        <div class="touch-group">
+            <div class="touch-btn" id="btnJump">⤒</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ================= CONFIG =================
+    const CONFIG = {
+        canvasWidth: 1024,
+        canvasHeight: 600,
+        gravity: 0.5,
+        friction: 0.85,
+        playerSpeed: 5,
+        jumpForce: 10,
+        tileSize: 40,
+        level1Height: 15,
+        level1Width: 50,
+        totalLevels: 5
+    };
+
+    // ================= LEVELS =================
+    const LEVELS = [
+        // Level 1: Simple
+        [
+            "..................................................................",
+            "..................................................................",
+            "..................................................................",
+            "..................................................................",
+            "..........................................m...........................",
+            "..................................................................",
+            "...........m..........................................................",
+            "..........###..........................................................",
+            "..................................................................",
+            ".......................s.........m....................................",
+            ".......................###.....###....................................",
+            "..................................................................",
+            "p..............................c....###....e..........................",
+            "####............................###............................#####",
+            "####............................###............................#####",
+        ],
+        // Level 2: Jumps
+        [
+            "..................................................................",
+            "..................................................................",
+            "..................................................................",
+            "...................................m..................................",
+            "..........###.......................###.................................",
+            "..........###....s................###.................................",
+            "..........###....###..............###.................................",
+            "..................................................................",
+            "............................m....................c....................",
+            "............................###..................###..................",
+            "..................................................................",
+            "........c.................................m...........................e",
+            "p....###................................###........................####",
+            "###....###....................s..........###........................####",
+            "###....###...................###..........###........................####",
+        ],
+        // Level 3: Enemies
+        [
+            "..................................................................",
+            "..................................................................",
+            "..................................................................",
+            "..........m.....................m....................e................",
+            "..........###....s.............###..................###...............",
+            "..........###...###............###..................###...............",
+            "..................................................................",
+            "..........................c..........................................m",
+            "..........................###..............................###........",
+            "................................................................",
+            "........e.......m....................s..............c.................",
+            "......###......###......s............###...........###...............",
+            "p........................###.........###...........###...............#",
+            "####....c................###.........###...........###...............#",
+            "####....###............................###...........###...............#",
+        ],
+        // Level 4: Complex
+        [
+            "..................................................................",
+            "..................................................................",
+            "..................................................................",
+            "..........e......m........e.......m...................e...............",
+            "..........###..###........###.....###..................###............",
+            "................................................................",
+            "......c.....s..........................................m..............",
+            "......###..###........................................###.............",
+            "................................................................",
+            "................................................................s...",
+            "................................................................###.",
+            "........m..................c.................................m......e.",
+            "p......###.....s..........###................................###.....##",
+            "####.....###....###......###................................###.....##",
+            "####.....###....###......###................................###.....##",
+        ],
+        // Level 5: Final
+        [
+            "..................................................................",
+            "..................................................................",
+            "..................................................................",
+            "..........e...m....e........m.....e......m..............e.............",
+            "..........###.###...###....###......###..###................###........",
+            "................................................................",
+            "....c......s............................s..........c..................",
+            "....###....###........................###..........###................",
+            "................................................................",
+            "...................e............................e...................",
+            ".................###...........................###..................",
+            ".....m.....s.....m..................s..........m........s.....m.....e",
+            "p..###..###..###..###.....s.........###......###......###..###...###..",
+            "##..###..###..###..###...###.......###......###......###..###...###..##",
+            "##..###..###..###..###...###.......###......###......###..###...###..##",
+        ]
+    ];
+
+    // ================= ENTITIES =================
+    class Player {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.width = 30;
+            this.height = 35;
+            this.velocityX = 0;
+            this.velocityY = 0;
+            this.onGround = false;
+            this.facingRight = true;
+            this.animFrame = 0;
+            this.animTimer = 0;
+            this.jumpCount = 0;
+            this.invulnerable = 0;
+        }
+
+        update(game) {
+            // Horizontal movement
+            if (game.input.left) {
+                this.velocityX = -CONFIG.playerSpeed;
+                this.facingRight = false;
+            } else if (game.input.right) {
+                this.velocityX = CONFIG.playerSpeed;
+                this.facingRight = true;
+            } else {
+                this.velocityX *= CONFIG.friction;
+                if (Math.abs(this.velocityX) < 0.1) this.velocityX = 0;
+            }
+
+            // Apply gravity
+            this.velocityY += CONFIG.gravity;
+
+            // Double jump check
+            if (game.input.jumpPressed && this.jumpCount < 2) {
+                this.velocityY = -CONFIG.jumpForce;
+                this.jumpCount++;
+                game.input.jumpPressed = false;
+            }
+
+            // Move X
+            this.x += this.velocityX;
+            this.handleCollisionsX(game);
+
+            // Move Y
+            this.y += this.velocityY;
+            this.onGround = false;
+            this.handleCollisionsY(game);
+
+            // Reset jump count if on ground
+            if (this.onGround) this.jumpCount = 0;
+
+            // Animation
+            if (Math.abs(this.velocityX) > 0.5) {
+                this.animTimer++;
+                if (this.animTimer > 10) {
+                    this.animFrame = (this.animFrame + 1) % 4;
+                    this.animTimer = 0;
+                }
+            } else {
+                this.animFrame = 0;
+            }
+
+            // Invulnerability timer
+            if (this.invulnerable > 0) this.invulnerable--;
+
+            // Boundaries
+            if (this.x < 0) this.x = 0;
+            if (this.x + this.width > game.camera.width) {
+                // Check if past end of level
+                if (game.levelMap[game.level] && this.x > game.levelMap[game.level].width * CONFIG.tileSize - 50) {
+                    game.completeLevel();
+                } else {
+                    this.x = game.camera.width - this.width;
+                }
+            }
+            if (this.y > game.camera.height + 100) {
+                game.playerDied();
+            }
+        }
+
+        handleCollisionsX(game) {
+            const tiles = game.getTilesAt(this.x, this.y, this.width, this.height);
+            for (const tile of tiles) {
+                if (tile.solid) {
+                    if (this.velocityX > 0) {
+                        this.x = tile.x - this.width;
+                        this.velocityX = 0;
+                    } else if (this.velocityX < 0) {
+                        this.x = tile.x + CONFIG.tileSize;
+                        this.velocityX = 0;
+                    }
+                }
+            }
+        }
+
+        handleCollisionsY(game) {
+            const tiles = game.getTilesAt(this.x, this.y, this.width, this.height);
+            for (const tile of tiles) {
+                if (tile.solid) {
+                    if (this.velocityY > 0) {
+                        this.y = tile.y - this.height;
+                        this.velocityY = 0;
+                        this.onGround = true;
+                    } else if (this.velocityY < 0) {
+                        this.y = tile.y + CONFIG.tileSize;
+                        this.velocityY = 0;
+                    }
+                }
+            }
+        }
+
+        draw(ctx, camera) {
+            const sx = this.x - camera.x;
+            const sy = this.y - camera.y;
+            const w = this.width;
+            const h = this.height;
+
+            // Invulnerability blink
+            if (this.invulnerable > 0 && Math.floor(this.invulnerable / 5) % 2 === 0) {
+                ctx.globalAlpha = 0.5;
+            }
+
+            // Shadow
+            ctx.fillStyle = "rgba(0,0,0,0.2)";
+            ctx.beginPath();
+            ctx.ellipse(sx + w/2, sy + h, w/2, 5, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // Body
+            ctx.fillStyle = "#E53935";
+            ctx.fillRect(sx + 5, sy + 15, w - 10, h - 15);
+
+            // Head
+            ctx.fillStyle = "#FFC107";
+            ctx.beginPath();
+            ctx.arc(sx + w/2, sy + 12, 12, 0, Math.PI*2);
+            ctx.fill();
+
+            // Eyes
+            ctx.fillStyle = "white";
+            const eyeOffset = this.facingRight ? 2 : -2;
+            ctx.beginPath();
+            ctx.arc(sx + w/2 - 5 + eyeOffset, sy + 10, 4, 0, Math.PI*2);
+            ctx.arc(sx + w/2 + 5 + eyeOffset, sy + 10, 4, 0, Math.PI*2);
+            ctx.fill();
+
+            // Pupils
+            ctx.fillStyle = "black";
+            ctx.beginPath();
+            ctx.arc(sx + w/2 - 5 + eyeOffset, sy + 10, 2, 0, Math.PI*2);
+            ctx.arc(sx + w/2 + 5 + eyeOffset, sy + 10, 2, 0, Math.PI*2);
+            ctx.fill();
+
+            // Mushroom on head
+            ctx.fillStyle = "#F44336";
+            ctx.beginPath();
+            ctx.ellipse(sx + w/2, sy + 2, 15, 8, 0, Math.PI, Math.PI*2);
+            ctx.fill();
+
+            // White spots on mushroom
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.arc(sx + w/2 - 5, sy + 1, 3, 0, Math.PI*2);
+            ctx.arc(sx + w/2 + 5, sy + 0, 3, 0, Math.PI*2);
+            ctx.arc(sx + w/2, sy + -2, 2, 0, Math.PI*2);
+            ctx.fill();
+
+            // Legs animation
+            ctx.fillStyle = "#1565C0";
+            const legOffset = Math.sin(this.animFrame * Math.PI / 2) * 3;
+            ctx.fillRect(sx + 5, sy + h - 5 + legOffset, 8, 5);
+            ctx.fillRect(sx + w - 13, sy + h - 5 - legOffset, 8, 5);
+
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    class Enemy {
+        constructor(x, y, type = "slime") {
+            this.x = x;
+            this.y = y;
+            this.width = 30;
+            this.height = 30;
+            this.type = type;
+            this.velocityX = type === "spiky" ? -1.5 : -1;
+            this.velocityY = 0;
+            this.active = true;
+            this.animFrame = 0;
+            this.animTimer = 0;
+        }
+
+        update(game) {
+            if (!this.active) return;
+
+            this.velocityY += CONFIG.gravity;
+            this.x += this.velocityX;
+            this.y += this.velocityY;
+
+            // Simple gravity and ground collision
+            const tiles = game.getTilesAt(this.x, this.y + this.height - 5, this.width, 10);
+            for (const tile of tiles) {
+                if (tile.solid) {
+                    this.y = tile.y - this.height;
+                    this.velocityY = 0;
+                    this.active = true;
+                }
+            }
+
+            // Wall collision - reverse direction
+            const frontX = this.velocityX > 0 ? this.x + this.width : this.x;
+            const frontTiles = game.getTilesAt(frontX, this.y + this.height - 10, this.velocityX > 0 ? 5 : -5, 10);
+            for (const tile of frontTiles) {
+                if (tile.solid) {
+                    this.velocityX *= -1;
+                    break;
+                }
+            }
+
+            // Deactivate if off screen
+            if (this.y > game.camera.height + 200) this.active = false;
+
+            // Animation
+            this.animTimer++;
+            if (this.animTimer > 15) {
+                this.animFrame = (this.animFrame + 1) % 2;
+                this.animTimer = 0;
+            }
+        }
+
+        draw(ctx, camera) {
+            if (!this.active) return;
+            const sx = this.x - camera.x;
+            const sy = this.y - camera.y;
+            const w = this.width;
+            const h = this.height;
+
+            if (this.type === "slime") {
+                // Green slime
+                ctx.fillStyle = "#4CAF50";
+                ctx.beginPath();
+                const squash = this.animFrame === 0 ? 1 : 0.8;
+                ctx.ellipse(sx + w/2, sy + h/2 + (1-squash)*h/2, w/2, h/2 * squash, 0, 0, Math.PI*2);
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = "white";
+                ctx.beginPath();
+                ctx.arc(sx + w/2 - 5, sy + h/2 - 3, 4, 0, Math.PI*2);
+                ctx.arc(sx + w/2 + 5, sy + h/2 - 3, 4, 0, Math.PI*2);
+                ctx.fill();
+
+                // Pupils
+                ctx.fillStyle = "black";
+                ctx.beginPath();
+                ctx.arc(sx + w/2 - 5, sy + h/2 - 3, 2, 0, Math.PI*2);
+                ctx.arc(sx + w/2 + 5, sy + h/2 - 3, 2, 0, Math.PI*2);
+                ctx.fill();
+            } else if (this.type === "spiky") {
+                // Purple spiky
+                ctx.fillStyle = "#9C27B0";
+                ctx.fillRect(sx + 5, sy + 5, w - 10, h - 5);
+
+                // Spikes
+                ctx.fillStyle = "#7B1FA2";
+                for (let i = 0; i < 5; i++) {
+                    const sx2 = sx + 5 + i * (w - 10) / 5;
+                    ctx.beginPath();
+                    ctx.moveTo(sx2, sy + 5);
+                    ctx.lineTo(sx2 + (w-10)/10, sy);
+                    ctx.lineTo(sx2 + (w-10)/5, sy + 5);
+                    ctx.fill();
+                }
+
+                // Face
+                ctx.fillStyle = "white";
+                ctx.beginPath();
+                ctx.arc(sx + w/2 - 4, sy + h/2, 3, 0, Math.PI*2);
+                ctx.arc(sx + w/2 + 4, sy + h/2, 3, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+    }
+
+    class Pickup {
+        constructor(x, y, type = "mushroom") {
+            this.x = x;
+            this.y = y;
+            this.width = 25;
+            this.height = 25;
+            this.type = type;
+            this.collected = false;
+            this.animFrame = 0;
+            this.animTimer = 0;
+            this.floatOffset = Math.random() * Math.PI * 2;
+        }
+
+        update(game) {
+            if (this.collected) return;
+            this.animTimer++;
+            if (this.animTimer > 20) this.animFrame = (this.animFrame + 1) % 4;
+        }
+
+        draw(ctx, camera) {
+            if (this.collected) return;
+            const sx = this.x - camera.x;
+            const sy = this.y - camera.y;
+            const w = this.width;
+            const h = this.height;
+            const floatY = Math.sin(this.animTimer * 0.05 + this.floatOffset) * 3;
+
+            if (this.type === "mushroom") {
+                // Stem
+                ctx.fillStyle = "#FFF9C4";
+                ctx.fillRect(sx + w/2 - 4, sy + h/2, 8, h/2);
+
+                // Cap
+                ctx.fillStyle = "#F44336";
+                ctx.beginPath();
+                ctx.ellipse(sx + w/2, sy + h/2 + floatY, w/2, h/3, 0, Math.PI, Math.PI*2);
+                ctx.fill();
+
+                // Spots
+                ctx.fillStyle = "white";
+                ctx.beginPath();
+                ctx.arc(sx + w/2 - 5, sy + h/2 - 2 + floatY, 3, 0, Math.PI*2);
+                ctx.arc(sx + w/2 + 5, sy + h/2 + floatY, 3, 0, Math.PI*2);
+                ctx.arc(sx + w/2, sy + h/2 - 5 + floatY, 2, 0, Math.PI*2);
+                ctx.fill();
+            } else if (this.type === "star") {
+                // Golden star
+                ctx.fillStyle = "#FFD700";
+                ctx.save();
+                ctx.translate(sx + w/2, sy + h/2 + floatY);
+                ctx.rotate(this.animTimer * 0.05);
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i * 4 * Math.PI) / 5;
+                    ctx.lineTo(Math.cos(angle) * w/2, Math.sin(angle) * w/2);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        checkCollision(player) {
+            if (this.collected) return false;
+            if (player.x < this.x + this.width &&
+                player.x + player.width > this.x &&
+                player.y < this.y + this.height &&
+                player.y + player.height > this.y) {
+                return true;
+            }
+            return false;
+        }
+    }
+
+    // ================= INPUT =================
+    class InputManager {
+        constructor() {
+            this.left = false;
+            this.right = false;
+            this.jump = false;
+            this.jumpPressed = false;
+            this.keys = {};
+
+            window.addEventListener('keydown', (e) => this.handleKey(e, true));
+            window.addEventListener('keyup', (e) => this.handleKey(e, false));
+
+            // Touch controls
+            this.setupTouchControls();
+        }
+
+        handleKey(e, pressed) {
+            const key = e.key.toLowerCase();
+            if (key === 'arrowleft' || key === 'a') {
+                this.left = pressed;
+            }
+            if (key === 'arrowright' || key === 'd') {
+                this.right = pressed;
+            }
+            if (key === 'arrowup' || key === ' ' || key === 'w') {
+                if (pressed && !this.jump) {
+                    this.jumpPressed = true;
+                }
+                this.jump = pressed;
+            }
+            if (pressed && (key === 'arrowup' || key === ' ' || key === 'w')) {
+                e.preventDefault();
+            }
+        }
+
+        setupTouchControls() {
+            const btnLeft = document.getElementById('btnLeft');
+            const btnRight = document.getElementById('btnRight');
+            const btnJump = document.getElementById('btnJump');
+
+            const addTouchHandlers = (btn, action) => {
+                btn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    btn.classList.add('active');
+                    action(true);
+                });
+                btn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    btn.classList.remove('active');
+                    action(false);
+                });
+                btn.addEventListener('mousedown', () => {
+                    btn.classList.add('active');
+                    action(true);
+                });
+                btn.addEventListener('mouseup', () => {
+                    btn.classList.remove('active');
+                    action(false);
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.classList.remove('active');
+                    action(false);
+                });
+            };
+
+            addTouchHandlers(btnLeft, (pressed) => this.left = pressed);
+            addTouchHandlers(btnRight, (pressed) => this.right = pressed);
+            addTouchHandlers(btnJump, (pressed) => {
+                if (pressed && !this.jump) this.jumpPressed = true;
+                this.jump = pressed;
+            });
+        }
+    }
+
+    // ================= RENDERER =================
+    class Renderer {
+        constructor(canvas) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.resize();
+            window.addEventListener('resize', () => this.resize());
+        }
+
+        resize() {
+            const container = document.getElementById('game-container');
+            const scale = Math.min(container.clientWidth / CONFIG.canvasWidth, container.clientHeight / CONFIG.canvasHeight);
+            this.canvas.width = CONFIG.canvasWidth;
+            this.canvas.height = CONFIG.canvasHeight;
+            this.canvas.style.width = (CONFIG.canvasWidth * scale) + 'px';
+            this.canvas.style.height = (CONFIG.canvasHeight * scale) + 'px';
+        }
+
+        clear() {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+
+        drawBackground(camera) {
+            const ctx = this.ctx;
+            // Sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.canvasHeight);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#E0F7FA');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, CONFIG.canvasWidth, CONFIG.canvasHeight);
+
+            // Clouds (parallax)
+            ctx.fillStyle = "rgba(255,255,255,0.8)";
+            for (let i = 0; i < 5; i++) {
+                const cx = ((i * 300 - camera.x * 0.3) % 1200 + 1200) % 1200 - 100;
+                const cy = 50 + i * 40;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 25, 0, Math.PI*2);
+                ctx.arc(cx + 20, cy, 20, 0, Math.PI*2);
+                ctx.arc(cx - 20, cy, 20, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            // Hills (parallax)
+            ctx.fillStyle = "#8BC34A";
+            for (let i = 0; i < 4; i++) {
+                const hx = ((i * 400 - camera.x * 0.5) % 1600 + 1600) % 1600 - 200;
+                ctx.beginPath();
+                ctx.ellipse(hx, CONFIG.canvasHeight - 50, 150, 80, 0, Math.PI, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        drawTile(tile, camera) {
+            const ctx = this.ctx;
+            const sx = tile.x - camera.x;
+            const sy = tile.y - camera.y;
+
+            if (sx < -CONFIG.tileSize || sx > CONFIG.canvasWidth || sy < -CONFIG.tileSize || sy > CONFIG.canvasHeight) return;
+
+            if (tile.solid) {
+                // Ground tile
+                ctx.fillStyle = "#8D6E63";
+                ctx.fillRect(sx, sy, CONFIG.tileSize, CONFIG.tileSize);
+                ctx.fillStyle = "#795548";
+                ctx.fillRect(sx, sy, CONFIG.tileSize, 5);
+
+                // Grass top
+                ctx.fillStyle = "#4CAF50";
+                ctx.fillRect(sx, sy, CONFIG.tileSize, 8);
+                ctx.fillStyle = "#388E3C";
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillRect(sx + 5 + i * 12, sy + 2, 6, 4);
+                }
+            }
+        }
+
+        render(game) {
+            this.clear();
+            this.drawBackground(game.camera);
+
+            // Draw tiles
+            const visibleTiles = game.getVisibleTiles();
+            for (const tile of visibleTiles) {
+                this.drawTile(tile, game.camera);
+            }
+
+            // Draw pickups
+            for (const pickup of game.pickups) {
+                pickup.draw(this.ctx, game.camera);
+            }
+
+            // Draw enemies
+            for (const enemy of game.enemies) {
+                enemy.draw(this.ctx, game.camera);
+            }
+
+            // Draw player
+            game.player.draw(this.ctx, game.camera);
+        }
+    }
+
+    // ================= GAME LOOP / ENGINE =================
+    class Game {
+        constructor() {
+            this.canvas = document.getElementById('gameCanvas');
+            this.renderer = new Renderer(this.canvas);
+            this.input = new InputManager();
+            this.level = 0;
+            this.score = 0;
+            this.lives = 3;
+            this.gameState = 'menu'; // menu, playing, paused, gameover, win
+            this.camera = { x: 0, y: 0 };
+            this.enemies = [];
+            this.pickups = [];
+            this.levelMap = null;
+            this.player = null;
+
+            // UI Elements
+            this.startMenu = document.getElementById('startMenu');
+            this.gameOverMenu = document.getElementById('gameOverMenu');
+            this.winMenu = document.getElementById('winMenu');
+            this.scoreDisplay = document.getElementById('scoreDisplay');
+            this.livesDisplay = document.getElementById('livesDisplay');
+            this.levelDisplay = document.getElementById('levelDisplay');
+            this.finalScore = document.getElementById('finalScore');
+            this.finalLevel = document.getElementById('finalLevel');
+            this.winScore = document.getElementById('winScore');
+
+            // Bind buttons
+            document.getElementById('startBtn').addEventListener('click', () => this.startGame());
+            document.getElementById('restartBtn').addEventListener('click', () => this.startGame());
+            document.getElementById('playAgainBtn').addEventListener('click', () => this.startGame());
+
+            this.loadLevel(0);
+            this.loop();
+        }
+
+        startGame() {
+            this.level = 0;
+            this.score = 0;
+            this.lives = 3;
+            this.gameState = 'playing';
+            this.startMenu.classList.add('hidden');
+            this.gameOverMenu.classList.add('hidden');
+            this.winMenu.classList.add('hidden');
+            this.loadLevel(this.level);
+            this.updateHUD();
+        }
+
+        loadLevel(levelIndex) {
+            const levelData = LEVELS[levelIndex];
+            this.levelMap = {
+                width: levelData[0].length,
+                height: levelData.length,
+                grid: levelData
+            };
+
+            this.enemies = [];
+            this.pickups = [];
+
+            let startX = CONFIG.tileSize;
+            let startY = CONFIG.tileSize;
+
+            for (let row = 0; row < this.levelMap.height; row++) {
+                const line = this.levelMap.grid[row];
+                for (let col = 0; col < line.length; col++) {
+                    const char = line[col];
+                    const x = col * CONFIG.tileSize;
+                    const y = row * CONFIG.tileSize;
+
+                    if (char === 'p') {
+                        startX = x;
+                        startY = y;
+                    }
+                    if (char === 'm') {
+                        this.pickups.push(new Pickup(x, y, "mushroom"));
+                    }
+                    if (char === 's') {
+                        this.enemies.push(new Enemy(x, y, "slime"));
+                    }
+                    if (char === 'c') {
+                        this.pickups.push(new Pickup(x, y, "star"));
+                    }
+                    if (char === 'e') {
+                        this.enemies.push(new Enemy(x, y, "sp

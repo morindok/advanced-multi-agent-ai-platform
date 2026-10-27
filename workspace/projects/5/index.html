@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simple Arcade</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --bg-dark: #1a1a2e;
+            --bg-light: #16213e;
+            --text: #ecf0f1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-dark), var(--bg-light));
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: none; /* Prevent scrolling on touch */
+        }
+
+        /* Header Section */
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--secondary);
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #aaa;
+            opacity: 0.8;
+        }
+
+        /* Game Container */
+        #game-wrapper {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            border: 4px solid var(--primary);
+            background-color: #0f0f13;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        /* UI Overlay (Score, Status) */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none; /* Let clicks pass through to canvas */
+            z-index: 5;
+            opacity: 0; /* Hidden until game starts */
+            transition: opacity 0.3s;
+        }
+
+        #ui-layer.visible {
+            opacity: 1;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(4px);
+        }
+
+        .stat-label {
+            color: var(--warning);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        /* Overlays (Start Screen, Game Over, Pause) */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 15, 19, 0.9);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            transition: opacity 0.3s;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .overlay h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: var(--accent);
+        }
+
+        .overlay p {
+            margin-bottom: 20px;
+            color: #ccc;
+            text-align: center;
+            max-width: 80%;
+            line-height: 1.5;
+        }
+
+        /* Buttons */
+        button {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            background: #2980b9;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.danger {
+            background: var(--accent);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        button.danger:hover {
+            background: #c0392b;
+        }
+
+        /* Footer / Controls Info */
+        footer {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #888;
+            text-align: center;
+            max-width: 600px;
+            padding: 0 20px;
+        }
+
+        kbd {
+            background: #333;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            border: 1px solid #555;
+            box-shadow: 0 2px 0 #222;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .stat-box { font-size: 0.9rem; padding: 4px 8px; }
+            footer { font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Simple Arcade</h1>
+        <div class="subtitle">اسناد زنجیری را نزنید!</div>
+    </header>
+
+    <div id="game-wrapper">
+        <!-- Score UI -->
+        <div id="ui-layer">
+            <div class="stat-box">
+                <span class="stat-label">امتیاز</span>
+                <span id="score-val">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">امتیاز عالی</span>
+                <span id="high-score-val">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">مرحله</span>
+                <span id="level-val">1</span>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+        <!-- Start Overlay -->
+        <div id="start-screen" class="overlay">
+            <h2>آماده بازی؟</h2>
+            <p>
+                با ماوس یا لمس کردن روی صفحه، به سمت گلوله‌ها حرکت کنید.<br>
+                از برخورد با گلوله‌های قرمز پرهیز کنید.<br>
+                تیری سبز پرتاب کنید تا امتیاز بگیرید!
+            </p>
+            <button id="btn-start">شروع بازی</button>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="game-over-screen" class="overlay hidden">
+            <h2>پایان بازی!</h2>
+            <p>
+                امتیاز نهایی شما: <span id="final-score" style="color: var(--warning); font-weight: bold;">0</span><br>
+                <span id="new-record-msg" style="display: none; color: var(--success);">🎉 رکورد جدید ثبت شد!</span>
+            </p>
+            <button id="btn-restart" class="danger">دوباره بازی کن</button>
+        </div>
+
+        <!-- Pause Overlay -->
+        <div id="pause-screen" class="overlay hidden">
+            <h2>بازی متوقف شد</h2>
+            <p>برای ادامه‌ی بازی کلید <kbd>P</kbd> را بزنید</p>
+            <button id="btn-resume">ادامه بازی</button>
+        </div>
+    </div>
+
+    <footer>
+        کنترل‌ها: <kbd>موش‌نشان</kbd> یا <kbd>لمس</kbd> جهت حرکت | <kbd>P</kbd> توقف/ادامه | <kbd>R</kbd> شروع مجدد
+    </footer>
+
+    <script>
+        /**
+         * Simple Arcade - Logic Engine
+         * Pure Vanilla JS, no external dependencies.
+         */
+        const Game = (() => {
+            // --- Constants & State ---
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // UI Elements
+            const uiLayer = document.getElementById('ui-layer');
+            const scoreEl = document.getElementById('score-val');
+            const highScoreEl = document.getElementById('high-score-val');
+            const levelEl = document.getElementById('level-val');
+            
+            const startScreen = document.getElementById('start-screen');
+            const gameOverScreen = document.getElementById('game-over-screen');
+            const pauseScreen = document.getElementById('pause-screen');
+            const finalScoreEl = document.getElementById('final-score');
+            const newRecordMsg = document.getElementById('new-record-msg');
+
+            // Game State
+            let state = 'START'; // START, PLAYING, PAUSED, GAME_OVER
+            let score = 0;
+            let level = 1;
+            let highScore = parseInt(localStorage.getItem('arcade_high_score')) || 0;
+            let lastTime = 0;
+            let animationId;
+
+            // Entities
+            let player = {
+                x: canvas.width / 2,
+                y: canvas.height - 50,
+                width: 40,
+                height: 40,
+                color: '#3498db',
+                speed: 12, // Lerp speed for mouse tracking
+                alive: true
+            };
+
+            let bullets = [];
+            let enemies = [];
+            let particles = [];
+
+            // Input
+            let mousePos = { x: canvas.width/2, y: canvas.height/2 };
+            let keys = {};
+
+            // Audio (Simple Beep synthesis to avoid loading files)
+            let audioContext = null;
+            
+            function initAudio() {
+                if (!audioContext) {
+                    try {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    } catch (e) {
+                        console.warn("Audio context not supported");
+                    }
+                }
+            }
+
+            function playSound(type) {
+                if (!audioContext) return;
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                let freq = 440;
+                let duration = 0.1;
+                let waveType = 'square';
+
+                if (type === 'shoot') {
+                    freq = 800;
+                    duration = 0.1;
+                    waveType = 'sine';
+                } else if (type === 'explosion') {
+                    freq = 100;
+                    duration = 0.3;
+                    waveType = 'sawtooth';
+                } else if (type === 'hit') {
+                    freq = 50;
+                    duration = 0.2;
+                    waveType = 'triangle';
+                } else if (type === 'levelup') {
+                    freq = 600;
+                    duration = 0.2;
+                    waveType = 'square';
+                }
+
+                oscillator.type = waveType;
+                oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(freq / 2, audioContext.currentTime + duration);
+                
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + duration);
+            }
+
+            // --- Initialization & Loop ---
+
+            function init() {
+                highScoreEl.textContent = highScore;
+                bindEvents();
+                requestAnimationFrame(gameLoop);
+            }
+
+            function resetGame() {
+                score = 0;
+                level = 1;
+                updateUI();
+                bullets = [];
+                enemies = [];
+                particles = [];
+                player.x = canvas.width / 2;
+                player.y = canvas.height - 50;
+                player.alive = true;
+                spawnEnemyTimer = 0;
+                lastTime = performance.now();
+            }
+
+            function startGame() {
+                initAudio();
+                resetGame();
+                state = 'PLAYING';
+                
+                // Hide overlays
+                startScreen.classList.add('hidden');
+                gameOverScreen.classList.add('hidden');
+                pauseScreen.classList.add('hidden');
+                uiLayer.classList.add('visible');
+                
+                lastTime = performance.now();
+                if (animationId) cancelAnimationFrame(animationId);
+                animationId = requestAnimationFrame(gameLoop);
+            }
+
+            function pauseGame() {
+                if (state !== 'PLAYING') return;
+                state = 'PAUSED';
+                pauseScreen.classList.remove('hidden');
+            }
+
+            function resumeGame() {
+                if (state !== 'PAUSED') return;
+                state = 'PLAYING';
+                pauseScreen.classList.add('hidden');
+                lastTime = performance.now();
+                if (animationId) cancelAnimationFrame(animationId);
+                animationId = requestAnimationFrame(gameLoop);
+            }
+
+            function gameOver() {
+                state = 'GAME_OVER';
+                player.alive = false;
+                
+                // Create explosion particles for player
+                createExplosion(player.x, player.y, '#3498db', 50);
+
+                finalScoreEl.textContent = score;
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('arcade_high_score', highScore);
+                    highScoreEl.textContent = highScore;
+                    newRecordMsg.style.display = 'inline';
+                } else {
+                    newRecordMsg.style.display = 'none';
+                }
+
+                setTimeout(() => {
+                    gameOverScreen.classList.remove('hidden');
+                }, 1000); // Delay showing overlay to show explosion
+            }
+
+            // --- Game Logic Updates ---
+
+            let spawnEnemyTimer = 0;
+
+            function update(deltaTime) {
+                // Normalize delta time for consistent speed regardless of FPS
+                const dt = deltaTime / 16.6667; // 60fps base
+
+                // 1. Move Player (Lerp towards mouse)
+                if (player.alive) {
+                    // Lerp for smooth movement
+                    const dx = mousePos.x - player.x;
+                    const dy = mousePos.y - player.y;
+                    
+                    // Basic linear interpolation
+                    player.x += dx * (player.speed * 0.1) * dt;
+                    player.y += dy * (player.speed * 0.1) * dt;
+
+                    // Clamp player within canvas bounds
+                    player.x = Math.max(player.width/2, Math.min(canvas.width - player.width/2, player.x));
+                    player.y = Math.max(player.height/2, Math.min(canvas.height - player.height/2, player.y));
+                }
+
+                // 2. Spawn Enemies
+                spawnEnemyTimer += dt;
+                const spawnRate = Math.max(20 - level * 2, 5); // Gets faster every level
+                if (spawnEnemyTimer > spawnRate) {
+                    spawnEnemy();
+                    spawnEnemyTimer = 0;
+                }
+
+                // 3. Update Bullets
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    const b = bullets[i];
+                    b.y -= b.speed * dt;
+                    b.x += (Math.random() - 0.5) * 0.5 * dt; // Slight wobble
+
+                    // Remove off-screen bullets
+                    if (b.y < -10) {
+                        bullets.splice(i, 1);
+                    }
+                }
+
+                // 4. Update Enemies
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    const e = enemies[i];
+                    e.y += e.speed * dt;
+                    e.angle += e.rotSpeed * dt;
+
+                    // If enemy goes off screen bottom, it's a miss? No, let's say if it hits bottom, it's dangerous or just wraps around? 
+                    // In simple shooter, usually they just go off. If they exit bottom, we lose points or nothing. 
+                    // Let's say if they hit bottom, they damage player? No, standard shooter: if enemy passes bottom, maybe -1 point or nothing. 
+                    // Let's keep it simple: enemies just fly by.
+                    if (e.y > canvas.height + 50) {
+                        enemies.splice(i, 1);
+                    }
+                }
+
+                // 5. Update Particles
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.life -= dt;
+                    if (p.life <= 0) {
+                        particles.splice(i, 1);
+                    }
+                }
+
+                // 6. Collision Detection
+
+                // Bullets vs Enemies
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    const e = enemies[i];
+                    for (let j = bullets.length - 1; j >= 0; j--) {
+                        const b = bullets[j];
+                        if (checkCollision(e, b)) {
+                            // Enemy hit
+                            enemies.splice(i, 1);
+                            bullets.splice(j, 1);
+                            score += 10;
+                            playSound('explosion');
+                            createExplosion(e.x, e.y, e.color, 20);
+                            updateUI();
+                            
+                            // Level up check
+                            if (score >= level * 100) {
+                                level++;
+                                playSound('levelup');
+                                // Flash effect or similar could be added here
+                                updateUI();
+                            }
+                            break; // Move to next enemy if this one is destroyed
+                        }
+                    }
+                }
+
+                // Enemies vs Player
+                if (player.alive) {
+                    for (let i = enemies.length - 1; i >= 0; i--) {
+                        const e = enemies[i];
+                        if (checkCollision(player, e)) {
+                            playSound('hit');
+                            createExplosion(player.x, player.y, '#e74c3c', 40);
+                            gameOver();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            function checkCollision(a, b) {
+                // Simple Circle-Circle or AABB
+                // Using AABB for simplicity and performance
+                const aLeft = a.x - a.width/2;
+                const aRight = a.x + a.width/2;
+                const aTop = a.y - a.height/2;
+                const aBottom = a.y + a.height/2;
+
+                const bLeft = b.x - b.width/2;
+                const bRight = b.x + b.width/2;
+                const bTop = b.y - b.height/2;
+                const bBottom = b.y + b.height/2;
+
+                return !(aRight < bLeft || aLeft > bRight || aBottom < bTop || aTop > bBottom);
+            }
+
+            function spawnEnemy() {
+                const size = 30 + Math.random() * 20;
+                const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                const enemy = {
+                    x: Math.random() * (canvas.width - size) + size/2,
+                    y: -size/2,
+                    width: size,
+                    height: size,
+                    speed: 2 + (level * 0.5) + Math.random(),
+                    rotSpeed: (Math.random() - 0.5) * 0.1,
+                    angle: 0,
+                    color: color,
+                    type: 'normal'
+                };
+                enemies.push(enemy);
+            }
+
+            function createExplosion(x, y, color, count) {
+                for (let i = 0; i < count; i++) {
+                    particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: (Math.random() - 0.5) * 10,
+                        life: 30 + Math.random() * 20,
+                        maxLife: 50,
+                        color: color,
+                        size: 2 + Math.random() * 4
+                    });
+                }
+            }
+
+            function updateUI() {
+                scoreEl.textContent = score;
+                levelEl.textContent = level;
+            }
+
+            // --- Rendering ---
+
+            function draw() {
+                // Clear Canvas
+                ctx.fillStyle = '#0f0f13';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw Grid (Simple background effect)
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.lineWidth = 1;
+                for(let i = 0; i < canvas.width; i += 40) {
+                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                }
+                for(let i = 0; i < canvas.height; i += 40) {
+                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+                }
+
+                // Draw Particles
+                particles.forEach(p => {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life / p.maxLife;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                    ctx.fill();
+                });
+                ctx.globalAlpha = 1.0;
+
+                // Draw Enemies
+                enemies.forEach(e => {
+                    ctx.save();
+                    ctx.translate(e.x, e.y);
+                    ctx.rotate(e.angle);
+                    
+                    // Simple polygon enemy
+                    ctx.fillStyle = e.color;
+                    ctx.beginPath();
+                    const s = e.width/2;
+                    ctx.moveTo(0, -s);
+                    ctx.lineTo(s, s);
+                    ctx.lineTo(-s, s);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Glow effect
+                    ctx.shadowColor = e.color;
+                    ctx.shadowBlur = 10;
+                    ctx.fill();
+                    ctx.shadowBlur = 0; // reset
+                    
+                    ctx.restore();
+                });
+
+                // Draw Bullets
+                bullets.forEach(b => {
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.width/2, 0, Math.PI*2);
+                    ctx.fill();
+                    
+                    // Bullet trail
+                    ctx.fillStyle = 'rgba(46, 204, 113, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y + 5, b.width/2 - 1, 0, Math.PI*2);
+                    ctx.fill();
+                });
+
+                // Draw Player
+                if (player.alive) {
+                    ctx.save();
+                    ctx.translate(player.x, player.y);
+                    
+                    // Player Ship
+                    ctx.fillStyle = player.color;
+                    ctx.shadowColor = player.color;
+                    ctx.shadowBlur = 15;
+                    
+                    ctx.beginPath();
+                    const pSize = player.width/2;
+                    ctx.moveTo(0, -pSize);
+                    ctx.lineTo(pSize, pSize);
+                    ctx.lineTo(0, pSize*0.5);
+                    ctx.lineTo(-pSize, pSize);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.restore();
+                }
+            }
+
+            // --- Main Loop ---
+
+            function gameLoop(timestamp) {
+                const deltaTime = timestamp - lastTime;
+                lastTime = timestamp;
+
+                if (state === 'PLAYING') {
+                    update(deltaTime);
+                    draw();
+                }
+                else if (state === 'GAME_OVER') {
+                    // Still update particles so explosion finishes
+                    updateParticlesOnly(deltaTime);
+                    draw();
+                }
+                else if (state === 'START') {
+                    // Idle animation or just static
+                    draw();
+                }
+
+                if (state !== 'PAUSED') {
+                    animationId = requestAnimationFrame(gameLoop);
+                }
+            }
+
+            function updateParticlesOnly(dt) {
+                const dtn = dt / 16.6667;
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx * dtn;
+                    p.y += p.vy * dtn;
+                    p.life -= dtn;
+                    if (p.life <= 0) particles.splice(i, 1);
+                }
+            }
+
+            // --- Input Handling ---
+
+            function bindEvents() {
+                // Mouse
+                canvas.addEventListener('mousemove', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    mousePos.x = (e.clientX - rect.left) * scaleX;
+                    mousePos.y = (e.clientY - rect.top) * scaleY;
+                });
+
+                canvas.addEventListener('mousedown', (e) => {
+                    if (state !== 'PLAYING') return;
+                    shoot();
+                });
+
+                // Touch
+                canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (state !== 'PLAYING') return;
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    mousePos.x = (touch.clientX - rect.left) * scaleX;
+                    mousePos.y = (touch.clientY - rect.top) * scaleY;
+                    shoot();
+                }, { passive: false });
+
+                canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    mousePos.x = (touch.clientX - rect.left) * scaleX;
+                    mousePos.y = (touch.clientY - rect.top) * scaleY;
+                }, { passive: false });
+
+                // Keyboard
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                        if (state === 'START') startGame();
+                        if (state === 'GAME_OVER') startGame();
+                        if (state === 'PLAYING') shoot();
+                    }
+                    if (e.key === 'p' || e.key === 'P') {
+                        if (state === 'PLAYING') pauseGame();
+                        if (state === 'PAUSED') resumeGame();
+                    }
+                    if (e.key === 'r' || e.key === 'R') {
+                        startGame();
+                    }
+                });
+
+                // Buttons
+                document.getElementById('btn-start').addEventListener('click', startGame);
+                document.getElementById('btn-restart').addEventListener('click', startGame);
+                document.getElementById('btn-resume').addEventListener('click', resumeGame);
+            }
+
+            function shoot() {
+                bullets.push({
+                    x: player.x,
+                    y: player.y - player.height/2,
+                    width: 8,
+                    height: 20,
+                    speed: 15,
+                    color: '#2ecc71'
+                });
+                playSound('shoot');
+            }
+
+            // --- Start ---
+            init();
+        })();
+    </script>
+</body>
+</html>

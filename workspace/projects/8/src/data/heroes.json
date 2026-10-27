@@ -1,0 +1,321 @@
+{
+  "heroes": [
+    {
+      "id": 1,
+      "name": "Guan Yu",
+      "title": "Pride of Shu",
+      "faction": "Shu",
+      "weaponType": "halberd",
+      "stats": { "attack": 85, "defense": 70, "speed": 60, "health": 90, "musouRate": 75 },
+      "moveset": {
+        "normalCombo": ["slash_down", "spin_cut", "thrust_up", "heavy_slam"],
+        "chargeCombo": ["launch_slash", "ground_crash", "wind_sweep", "dragon_roar"],
+        "musouName": "Green Dragon Ascends",
+        "musouEffect": "aoe_cleave",
+        "musouDamage": 500,
+        "musouDuration": 4.0
+      },
+      "proceduralModel": {
+        "bodyColor": [0.1, 0.6, 0.2],
+        "armorColor": [0.8, 0.1, 0.1],
+        "beardLength": 0.6,
+        "build": "heavy",
+        "eyeColor": [0.1, 0.1, 0.1]
+      },
+      "dialogues": ["Hah!", "Feel my wrath!", "I am invincible!", "You dare oppose me?"]
+    },
+    {
+      "id": 2,
+      "name": "Zhang Fei",
+      "title": "Fierce Tiger",
+      "faction": "Shu",
+      "weaponType": "spear",
+      "stats": { "attack": 90, "defense": 60, "speed": 65, "health": 85, "musouRate": 80 },
+      "moveset": {
+        "normalCombo": ["thrust", "spin_stab", "hook_pull", "rear_strike"],
+        "chargeCombo": ["pike_burst", "tiger_pounce", "storm_thrust", "roar_aoe"],
+        "musouName": "Ten Thousand Rages",
+        "musouEffect": "rage_frenzy",
+        "musouDamage": 450,
+        "musouDuration": 5.0
+      },
+      "proceduralModel": {
+        "bodyColor": [0.2, 0.15, 0.3],
+        "armorColor": [0.3, 0.3, 0.3],
+        "beardLength": 0.8,
+        "build": "muscular",
+        "eyeColor": [0.9, 0.3, 0.1]
+      },
+      "dialogues": ["BRUTALIZE THEM!", "Come at me!", "I fear no one!", "RRRAAAAGH!"]
+    },
+    {
+      "id": 3,
+      "name": "Zhao Yun",
+      "title": "Flying General",
+      "faction": "Shu",
+      "weaponType": "spear",
+      "stats": { "attack": 75, "defense": 70, "speed": 90, "health": 70, "musouRate": 85 },
+      "moveset": {
+        "normalCombo": ["quick_thrust", "fade_step", "spiral_strike", "drain_lance"],
+        "chargeCombo": ["lightning_charge", "cloud_piercer", "seven_migrations", "heaven_strike"],
+        "musouName": "Seven Movements Through Hell",
+        "musouEffect": "rapid_all_around",
+        "musouDamage": 400,
+        "musouDuration": 4.5
+      },
+      "proceduralModel": {
+        "bodyColor": [0.2, 0.4, 0.7],
+        "armorColor": [0.9, 0.9, 0.95],
+        "beardLength": 0.0,
+        "build": "balanced",
+        "eyeColor": [0.1, 0.3, 0.8]
+      },
+      "dialogues": ["I shall clear the path.", "Watch my blade.", "For Brother Liu!", "Swift as wind."]
+    },
+    {
+      "id": 4,
+      "name": "Cao Cao",
+      "title": "Hero of Chaos",
+      "faction": "Wei",
+      "weaponType": "sword",
+      "stats": { "attack": 80, "defense": 75, "speed": 70, "health": 80, "musouRate": 70 },
+      "moveset": {
+        "normalCombo": ["slash_combo", "counter_parry", "feint_thrust", "finishing_cut"],
+        "chargeCombo": ["stratagem_slice", "empire_breaker", "ambush_strike", "draconic_wind"],
+        "musouName": "Ambition Unleashed",
+        "musouEffect": "commanding_slash",
+        "musouDamage": 480,
+        "musouDuration": 4.0
+      },
+      "proceduralModel": {
+        "bodyColor": [0.3, 0.2, 0.1],
+        "armorColor": [0.2, 0.2, 0.5],
+        "beardLength": 0.3,
+        "build": "balanced",
+        "eyeColor": [0.8, 0.6, 0.1]
+      },
+      "dialogues": ["I would rather betray the world...", "Strategy prevails!", "Victory is mine.", "Bold ambition."]
+    },
+    {
+      "id": 5,
+      "name": "Sima Yi",
+      "title": "Sleeping Dragon",
+      "faction": "Wei",
+      "weaponType": "fan",
+      "stats": { "attack": 60, "defense": 65, "speed": 75, "health": 60, "musouRate": 65 },
+      "moveset": {
+        "normalCombo": ["fan_wave", "wind_cut", "debilitate", "confusion_blast"],
+        "chargeCombo": ["ice_storm", "shadow_bolt", "heavenly_rage", "calamity_wind"],
+        "musouName": "Heaven's Scourge",
+        "musouEffect": "area_debuff",
+        "musouDamage": 350,
+        "musouDuration": 6.0
+      },
+      "proceduralModel": {
+        "bodyColor": [0.4, 0.35, 0.5],
+        "armorColor": [0.1, 0.1, 0.3],
+        "beardLength": 0.5,
+        "build": "slender",
+        "eyeColor": [0.9, 0.9, 0.2]
+      },
+      "dialogues": ["Patience is key.", "The end is certain.", "You are already defeated.", "Observe my wisdom."]
+    },
+    {
+      "id": 6,
+      "name": "Xu Chu",
+      "title": "Furious Tiger",
+      "faction": "Wei",
+      "weaponType": "dual_hooks",
+      "stats": { "attack": 95, "defense": 80, "speed": 45, "health": 95, "musouRate": 90 },
+      "moveset": {
+        "normalCombo": ["hook_pull", "upper_hook", "spin_hurl", "crushing_grab"],
+        "chargeCombo": ["tidal_twin", "mountain_collapse", "demon_wrath", "earth_shaker"],
+        "musouName": "Oni's Dual Fury",
+        "musouEffect": "grappling_aoe",
+        "musouDamage": 520,
+        "musouDuration": 3.5
+      },
+      "proceduralModel": {
+        "bodyColor": [0.5, 0.3, 0.1],
+        "armorColor": [0.6, 0.5, 0.3],
+        "beardLength": 0.7,
+        "build": "massive",
+        "eyeColor": [0.9, 0.1, 0.1]
+      },
+      "dialogues": ["MUNCH THEM!", "STRONGER!", "I am the wall!", "TASTE STEEL!"]
+    },
+    {
+      "id": 7,
+      "name": "Sun Quan",
+      "title": "Young Sovereign",
+      "faction": "Wu",
+      "weaponType": "bow",
+      "stats": { "attack": 70, "defense": 65, "speed": 65, "health": 65, "musouRate": 60 },
+      "moveset": {
+        "normalCombo": ["quick_shot", "aimed_shot", "rain_arrow", "piercing_bolt"],
+        "chargeCombo": ["dragon_arrow", "heavenfall Volley", "sovereign_barrage", "judgment_shot"],
+        "musouName": "Riverside Barrage",
+        "musouEffect": "arrow_storm",
+        "musouDamage": 420,
+        "musouDuration": 5.0
+      },
+      "proceduralModel": {
+        "bodyColor": [0.3, 0.4, 0.6],
+        "armorColor": [0.8, 0.6, 0.1],
+        "beardLength": 0.1,
+        "build": "slender",
+        "eyeColor": [0.2, 0.6, 0.3]
+      },
+      "dialogues": ["The south is mine.", "Hold the line!", "My arrows are relentless.", "Defend Wu!"]
+    },
+    {
+      "id": 8,
+      "name": "Zhou Yu",
+      "title": "Elegant Strategist",
+      "faction": "Wu",
+      "weaponType": "sword",
+      "stats": { "attack": 82, "defense": 60, "speed": 80, "health": 55, "musouRate": 72 },
+      "moveset": {
+        "normalCombo": ["flowing_strike", "water_dance", "flame_arc", "tide_reversal"],
+        "chargeCombo": ["fire_ship_charge", "burning_horizon", "red_cliff_fury", "inferno_slash"],
+        "musouName": "Battle of Red Cliffs",
+        "musouEffect": "fire_aoe",
+        "musouDamage": 460,
+        "musouDuration": 4.5
+      },
+      "proceduralModel": {
+        "bodyColor": [0.6, 0.3, 0.2],
+        "armorColor": [0.9, 0.2, 0.1],
+        "beardLength": 0.2,
+        "build": "balanced",
+        "eyeColor": [0.1, 0.5, 0.9]
+      },
+      "dialogues": ["Fire spreads where I will.", "Beautiful strategy.", "The flames consume all.", "Wu's glory."]
+    },
+    {
+      "id": 9,
+      "name": "Lü Bu",
+      "title": "God of War",
+      "faction": "Other",
+      "weaponType": "spear",
+      "stats": { "attack": 100, "defense": 90, "speed": 75, "health": 100, "musouRate": 95 },
+      "moveset": {
+        "normalCombo": ["heaven pierce", "demon spin", "wolf fang", "skyrend"],
+        "chargeCombo": ["dragon subsiders", "invincible surge", "godlike storm", "heaven shaker"],
+        "musouName": "War God's Descent",
+        "musouEffect": "invincible_onslaught",
+        "musouDamage": 600,
+        "musouDuration": 5.0
+      },
+      "proceduralModel": {
+        "bodyColor": [0.7, 0.2, 0.1],
+        "armorColor": [0.9, 0.8, 0.2],
+        "beardLength": 0.4,
+        "build": "massive",
+        "eyeColor": [1.0, 0.5, 0.0]
+      },
+      "dialogues": ["Who dares contest me?!", "I AM INVINCIBLE!", "DEATH!", "None can stop me!"]
+    },
+    {
+      "id": 10,
+      "name": "Diaochan",
+      "title": "Dancing Beauty",
+      "faction": "Other",
+      "weaponType": "twin_blades",
+      "stats": { "attack": 72, "defense": 50, "speed": 92, "health": 45, "musouRate": 78 },
+      "moveset": {
+        "normalCombo": ["petal_swirl", "moon_dance", "silk_twist", "butterfly_edge"],
+        "chargeCombo": ["falling_petals", "phantom_waltz", "silk_noose", "celestial_spin"],
+        "musouName": "Moonlit Petal Storm",
+        "musouEffect": "silence_aoe",
+        "musouDamage": 380,
+        "musouDuration": 4.0
+      },
+      "proceduralModel": {
+        "bodyColor": [0.8, 0.5, 0.6],
+        "armorColor": [0.9, 0.4, 0.7],
+        "beardLength": 0.0,
+        "build": "slender",
+        "eyeColor": [0.2, 0.1, 0.5]
+      },
+      "dialogues": ["Watch closely...", "Beauty is deadly.", "A dance of death.", "You fell for my trap."]
+    },
+    {
+      "id": 11,
+      "name": "Sun Ce",
+      "title": "Little Conqueror",
+      "faction": "Wu",
+      "weaponType": "sword",
+      "stats": { "attack": 88, "defense": 65, "speed": 85, "health": 70, "musouRate": 82 },
+      "moveset": {
+        "normalCombo": ["rising_fang", "tiger_strike", "wave_cleaver", "fierce_burst"],
+        "chargeCombo": ["conqueror_slash", "dragon_surge", "rampage", "legend_end"],
+        "musouName": "Conqueror's Charge",
+        "musouEffect": "charging_rampage",
+        "musouDamage": 490,
+        "musouDuration": 4.0
+      },
+      "proceduralModel": {
+        "bodyColor": [0.6, 0.4, 0.1],
+        "armorColor": [0.9, 0.7, 0.2],
+        "beardLength": 0.15,
+        "build": "athletic",
+        "eyeColor": [0.1, 0.7, 0.4]
+      },
+      "dialogues": ["I shall conquer all!", "Have at you!", "Fear my blade!", "Yield or die!"]
+    },
+    {
+      "id": 12,
+      "name": "Cai Wenji",
+      "title": "Wandering Zither",
+      "faction": "Other",
+      "weaponType": "staff",
+      "stats": { "attack": 55, "defense": 55, "speed": 70, "health": 50, "musouRate": 55 },
+      "moveset": {
+        "normalCombo": ["strum_strike", "melody_combo", "rhythm_pulse", "harmonic_blast"],
+        "chargeCombo": ["sorrowful_note", "desolate_wind", "exile_song", "spirit_summon"],
+        "musouName": "Song of Exile",
+        "musouEffect": "heal_and_damage",
+        "musouDamage": 300,
+        "musouDuration": 6.0
+      },
+      "proceduralModel": {
+        "bodyColor": [0.5, 0.4, 0.6],
+        "armorColor": [0.7, 0.6, 0.8],
+        "beardLength": 0.0,
+        "build": "slender",
+        "eyeColor": [0.4, 0.2, 0.7]
+      },
+      "dialogues": ["My sorrow... sings through you.", "The steps of my exile.", "Memories haunt.", "Even in exile, I fight."]
+    }
+  ],
+  "weaponTypes": {
+    "sword": { "range": 2.0, "speed": 1.0, "damageMultiplier": 1.0, "hitboxRadius": 1.5 },
+    "spear": { "range": 3.5, "speed": 0.85, "damageMultiplier": 1.1, "hitboxRadius": 2.0 },
+    "twin_blades": { "range": 1.5, "speed": 1.3, "damageMultiplier": 0.8, "hitboxRadius": 1.2 },
+    "halberd": { "range": 3.0, "speed": 0.75, "damageMultiplier": 1.3, "hitboxRadius": 1.8 },
+    "bow": { "range": 15.0, "speed": 0.6, "damageMultiplier": 1.0, "hitboxRadius": 0.5 },
+    "fan": { "range": 2.5, "speed": 0.9, "damageMultiplier": 0.7, "hitboxRadius": 2.5 },
+    "staff": { "range": 2.8, "speed": 0.8, "damageMultiplier": 0.9, "hitboxRadius": 1.6 },
+    "dual_hooks": { "range": 2.2, "speed": 0.7, "damageMultiplier": 1.2, "hitboxRadius": 1.4 }
+  },
+  "enemyTypes": {
+    "grunt": { "health": 30, "attack": 8, "speed": 1.5, "range": 1.8, "damage": 10, " XP": 5, "color": [0.6, 0.4, 0.3], "weapon": "sword" },
+    "archer": { "health": 20, "attack": 5, "speed": 1.0, "range": 10.0, "damage": 12, "XP": 8, "color": [0.4, 0.5, 0.3], "weapon": "bow" },
+    "spearman": { "health": 40, "attack": 10, "speed": 1.2, "range": 3.0, "damage": 14, "XP": 10, "color": [0.5, 0.3, 0.4], "weapon": "spear" },
+    "shield": { "health": 80, "attack": 6, "speed": 0.8, "range": 1.5, "damage": 8, "XP": 12, "color": [0.3, 0.3, 0.5], "weapon": "sword" },
+    "cavalry": { "health": 60, "attack": 15, "speed": 3.0, "range": 2.5, "damage": 20, "XP": 20, "color": [0.7, 0.5, 0.2], "weapon": "spear" },
+    "elite": { "health": 120, "attack": 18, "speed": 1.5, "range": 2.0, "damage": 25, "XP": 30, "color": [0.8, 0.2, 0.2], "weapon": "sword" },
+    "officer": { "health": 300, "attack": 30, "speed": 1.8, "range": 2.5, "damage": 40, "XP": 100, "color": [0.9, 0.5, 0.1], "weapon": "halberd" },
+    "commander": { "health": 800, "attack": 50, "speed": 1.2, "range": 3.0, "damage": 60, "XP": 500, "color": [1.0, 0.1, 0.1], "weapon": "spear" }
+  },
+  "battlefield": {
+    "mapSize": 200,
+    "baseCount": 4,
+    "maxEnemies": 300,
+    "spawnRadius": 80,
+    "dayNightCycle": true,
+    "weatherEffects": ["none", "rain", "fog"],
+    "objectives": ["defeat_commander", "hold_base", "escort", "survive_wave"]
+  }
+}
